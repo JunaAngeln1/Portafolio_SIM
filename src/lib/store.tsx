@@ -3,8 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { VeterinaryClinic, Service, FilterState, ImportData, StoredData } from './types';
 import { mockClinics, mockServices } from './data';
-
-const STORAGE_KEY = 'simp_data';
+import { supabase } from './supabase';
 
 interface AppState {
   clinicas: VeterinaryClinic[];
@@ -53,43 +52,76 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [datosCargados, setDatosCargados] = useState(false);
 
   useEffect(() => {
-    const datosAlmacenados = localStorage.getItem(STORAGE_KEY);
-    if (datosAlmacenados) {
+    // Cargar datos iniciales desde Supabase
+    const loadInitialData = async () => {
       try {
-        const datos: StoredData = JSON.parse(datosAlmacenados);
-        setClinicas(datos.clinicas || []);
-        setServicios(datos.servicios || []);
-      } catch {
+        const { data: clinicasData, error: clinicasError } = await supabase
+          .from('clinics')
+          .select('*');
+        
+        const { data: serviciosData, error: serviciosError } = await supabase
+          .from('services')
+          .select('*');
+
+        if (!clinicasError) setClinicas(clinicasData || []);
+        if (!serviciosError) setServicios(serviciosData || []);
+        setDatosCargados(true);
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+        // Fallback a datos mock si hay error
         setClinicas(mockClinics);
         setServicios(mockServices);
+        setDatosCargados(true);
       }
-    } else {
-      setClinicas(mockClinics);
-      setServicios(mockServices);
-    }
-    setDatosCargados(true);
+    };
+
+    loadInitialData();
+
+    // Suscribirse a cambios en tiempo real
+    const clinicsSubscription = supabase
+      .channel('clinicas-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'clinics' }, 
+        payload => {
+          if (payload.eventType === 'INSERT') {
+            setClinicas(prev => [...prev, payload.new]);
+          } else if (payload.eventType === 'UPDATE') {
+            setClinicas(prev => prev.map(c => 
+              c.id === payload.new.id ? payload.new : c
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            setClinicas(prev => prev.filter(c => c.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    const servicesSubscription = supabase
+      .channel('servicios-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'services' }, 
+        payload => {
+          if (payload.eventType === 'INSERT') {
+            setServicios(prev => [...prev, payload.new]);
+          } else if (payload.eventType === 'UPDATE') {
+            setServicios(prev => prev.map(s => 
+              s.id === payload.new.id ? payload.new : s
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            setServicios(prev => prev.filter(s => s.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    // Limpiar suscripciones al desmontar
+    return () => {
+      supabase.removeChannel(clinicsSubscription);
+      supabase.removeChannel(servicesSubscription);
+    };
   }, []);
 
-  useEffect(() => {
-    if (datosCargados) {
-      const datos: StoredData = {
-        clinicas,
-        servicios,
-        ultimaActualizacion: new Date().toISOString().split('T')[0],
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
-    }
-  }, [clinicas, servicios, datosCargados]);
-
-  const guardarDatos = useCallback(() => {
-    const datos: StoredData = {
-      clinicas,
-      servicios,
-      ultimaActualizacion: new Date().toISOString().split('T')[0],
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
-  }, [clinicas, servicios]);
-
+  // Funciones CRUD que operan directamente contra Supabase
   const setFiltros = useCallback((nuevosFiltros: Partial<FilterState>) => {
     setFiltrosState(prev => ({ ...prev, ...nuevosFiltros }));
   }, []);
@@ -98,106 +130,215 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setFiltrosState(filtrosPorDefecto);
   }, []);
 
-  const agregarClinica = useCallback((clinica: VeterinaryClinic) => {
-    setClinicas(prev => [...prev, clinica]);
-  }, []);
-
-  const actualizarClinica = useCallback((id: string, actualizaciones: Partial<VeterinaryClinic>) => {
-    setClinicas(prev => prev.map(c => c.id === id ? { ...c, ...actualizaciones, fechaActualizacion: new Date().toISOString().split('T')[0] } : c));
-  }, []);
-
-  const eliminarClinica = useCallback((id: string) => {
-    setClinicas(prev => prev.filter(c => c.id !== id));
-    setServicios(prev => prev.filter(s => s.clinicaId !== id));
-  }, []);
-
-  const agregarServicio = useCallback((servicio: Service) => {
-    setServicios(prev => [...prev, servicio]);
-  }, []);
-
-  const actualizarServicio = useCallback((id: string, actualizaciones: Partial<Service>) => {
-    setServicios(prev => prev.map(s => s.id === id ? { ...s, ...actualizaciones, fechaActualizacion: new Date().toISOString().split('T')[0] } : s));
-  }, []);
-
-  const eliminarServicio = useCallback((id: string) => {
-    setServicios(prev => prev.filter(s => s.id !== id));
-  }, []);
-
-  const duplicarServicio = useCallback((id: string) => {
-    const original = servicios.find(s => s.id === id);
-    if (original) {
-      const nuevoServicio: Service = {
-        ...original,
-        id: `srv_${Date.now()}`,
-        nombre: `${original.nombre} (Copia)`,
-        estado: 'activo',
-        fechaCreacion: new Date().toISOString().split('T')[0],
-        fechaActualizacion: new Date().toISOString().split('T')[0],
-      };
-      setServicios(prev => [...prev, nuevoServicio]);
+  const agregarClinica = useCallback(async (clinica: VeterinaryClinic) => {
+    try {
+      const { error } = await supabase
+        .from('clinics')
+        .insert([clinica]);
+        
+      if (error) throw error;
+      // No actualizamos estado local - las suscripciones se encargarán
+    } catch (error) {
+      console.error('Error adding clinic:', error);
+      throw error;
     }
-  }, [servicios]);
+  }, []);
 
-  const importarDatos = useCallback((data: ImportData): { clinicasImportadas: number; serviciosImportados: number } => {
+  const actualizarClinica = useCallback(async (id: string, actualizaciones: Partial<VeterinaryClinic>) => {
+    try {
+      const { error } = await supabase
+        .from('clinics')
+        .update({ 
+          ...actualizaciones,
+          fecha_actualizacion: new Date().toISOString().split('T')[0]
+        })
+        .eq('id', id);
+        
+      if (error) throw error;
+      // No actualizamos estado local - las suscripciones se encargarán
+    } catch (error) {
+      console.error('Error updating clinic:', error);
+      throw error;
+    }
+  }, []);
+
+  const eliminarClinica = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('clinics')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      // Los servicios asociados se eliminarán por CASCADE en la BD
+      // No actualizamos estado local - las suscripciones se encargarán
+    } catch (error) {
+      console.error('Error deleting clinic:', error);
+      throw error;
+    }
+  }, []);
+
+  const agregarServicio = useCallback(async (servicio: Service) => {
+    try {
+      const { error } = await supabase
+        .from('services')
+        .insert([servicio]);
+        
+      if (error) throw error;
+      // No actualizamos estado local - las suscripciones se encargarán
+    } catch (error) {
+      console.error('Error adding service:', error);
+      throw error;
+    }
+  }, []);
+
+  const actualizarServicio = useCallback(async (id: string, actualizaciones: Partial<Service>) => {
+    try {
+      const { error } = await supabase
+        .from('services')
+        .update({ 
+          ...actualizaciones,
+          fecha_actualizacion: new Date().toISOString().split('T')[0]
+        })
+        .eq('id', id);
+        
+      if (error) throw error;
+      // No actualizamos estado local - las suscripciones se encargarán
+    } catch (error) {
+      console.error('Error updating service:', error);
+      throw error;
+    }
+  }, []);
+
+  const eliminarServicio = useCallback(async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      // No actualizamos estado local - las suscripciones se encargarán
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      throw error;
+    }
+  }, []);
+
+  const duplicarServicio = useCallback(async (id: string) => {
+    try {
+      // Primero obtenemos el servicio original
+      const { data: originalData, error: fetchError } = await supabase
+        .from('services')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      if (!originalData) throw new Error('Service not found');
+      
+      // Creamos el nuevo servicio basado en el original
+      const nuevoServicio: Omit<Service, 'id'> = {
+        ...originalData,
+        nombre: `${originalData.nombre} (Copia)`,
+        estado: 'activo',
+        fecha_creacion: new Date().toISOString().split('T')[0],
+        fecha_actualizacion: new Date().toISOString().split('T')[0],
+      };
+      
+      // Eliminamos el id para que la BD genere uno nuevo
+      delete nuevoServicio.id;
+      
+      // Insertamos el nuevo servicio
+      const { error } = await supabase
+        .from('services')
+        .insert([nuevoServicio]);
+        
+      if (error) throw error;
+      // No actualizamos estado local - las suscripciones se encargarán
+    } catch (error) {
+      console.error('Error duplicating service:', error);
+      throw error;
+    }
+  }, []);
+
+  const importarDatos = useCallback(async (data: ImportData): Promise<{ clinicasImportadas: number; serviciosImportados: number }> => {
     let clinicasCount = 0;
     let serviciosCount = 0;
-    const nuevasClinicas: VeterinaryClinic[] = [];
-    const nuevosServicios: Service[] = [];
 
-    data.veterinarias.forEach((vet, vetIndex) => {
-      const clinicaId = `vet_${Date.now()}_${vetIndex}`;
-      const fechaActual = new Date().toISOString().split('T')[0];
-      
-      const clinica: VeterinaryClinic = {
-        id: clinicaId,
-        nombre: vet.nombre,
-        ciudad: vet.ciudad,
-        direccion: vet.direccion || '',
-        servicioDomicilio: vet.servicio_domicilio ?? true,
-        estado: 'activo',
-        fechaCreacion: fechaActual,
-        fechaActualizacion: fechaActual,
-      };
-      nuevasClinicas.push(clinica);
-      clinicasCount++;
-
-      vet.servicios.forEach((srv, srvIndex) => {
-        const validCategories = ['CONSULTA', 'CIRUGIA', 'LABORATORIO', 'IMAGENES', 'VACUNAS', 'PROCEDIMIENTOS'];
-        const categoria = validCategories.includes(srv.categoria) ? srv.categoria : 'CONSULTA';
+    try {
+      for (const vet of data.veterinarias) {
+        const fechaActual = new Date().toISOString().split('T')[0];
         
-        const modoServicio = srv.modo_servicio === 'EN_SEDE' ? 'EN_SEDE' 
-          : srv.modo_servicio === 'A_DOMICILIO' ? 'A_DOMICILIO' 
-          : 'AMBOS';
-
-        const servicio: Service = {
-          id: `srv_${Date.now()}_${vetIndex}_${srvIndex}`,
-          categoria: categoria as Service['categoria'],
-          nombre: srv.nombre,
-          descripcion: srv.descripcion || '',
-          precio: srv.precio || 0,
-          proveedor: vet.nombre,
-          clinicaId: clinicaId,
+        // Insertamos la clínica
+        const clinicaData = {
+          nombre: vet.nombre,
           ciudad: vet.ciudad,
-          modoServicio: modoServicio as Service['modoServicio'],
+          direccion: vet.direccion || '',
+          servicio_domicilio: vet.servicio_domicilio ?? true,
           estado: 'activo',
-          fechaCreacion: fechaActual,
-          fechaActualizacion: fechaActual,
+          fecha_creacion: fechaActual,
+          fecha_actualizacion: fechaActual,
         };
-        nuevosServicios.push(servicio);
-        serviciosCount++;
-      });
-    });
 
-    setClinicas(prev => [...prev, ...nuevasClinicas]);
-    setServicios(prev => [...prev, ...nuevosServicios]);
+        const { data: clinicaResult, error: clinicaError } = await supabase
+          .from('clinics')
+          .insert([clinicaData])
+          .select()
+          .single();
+          
+        if (clinicaError) throw clinicaError;
+        clinicasCount++;
 
-    return { clinicasImportadas: clinicasCount, serviciosImportados: serviciosCount };
+        // Insertamos los servicios de esta clínica
+        for (const srv of vet.servicios) {
+          const validCategories = ['CONSULTA', 'CIRUGIA', 'LABORATORIO', 'IMAGENES', 'VACUNAS', 'PROCEDIMIENTOS'];
+          const categoria = validCategories.includes(srv.categoria) ? srv.categoria : 'CONSULTA';
+          
+          const modoServicio = srv.modo_servicio === 'EN_SEDE' ? 'EN_SEDE' 
+            : srv.modo_servicio === 'A_DOMICILIO' ? 'A_DOMICILIO' 
+            : 'AMBOS';
+
+          const servicioData = {
+            categoria: categoria as Service['categoria'],
+            nombre: srv.nombre,
+            descripcion: srv.descripcion || '',
+            precio: srv.precio || 0,
+            proveedor: vet.nombre,
+            clinica_id: clinicaResult.id,
+            ciudad: vet.ciudad,
+            modo_servicio: modoServicio as Service['modoServicio'],
+            estado: 'activo',
+            fecha_creacion: fechaActual,
+            fecha_actualizacion: fechaActual,
+          };
+
+          const { error: servicioError } = await supabase
+            .from('services')
+            .insert([servicioData]);
+            
+          if (servicioError) throw servicioError;
+          serviciosCount++;
+        }
+      }
+      
+      return { clinicasImportadas: clinicasCount, serviciosImportados: serviciosCount };
+    } catch (error) {
+      console.error('Error importing data:', error);
+      throw error;
+    }
   }, []);
 
-  const limpiarTodosLosDatos = useCallback(() => {
-    setClinicas([]);
-    setServicios([]);
-    localStorage.removeItem(STORAGE_KEY);
+  const limpiarTodosLosDatos = useCallback(async () => {
+    try {
+      // Eliminamos en orden correcto debido a las foreign keys
+      await supabase.from('services').delete().neq('id', ''); // Eliminar todos los servicios
+      await supabase.from('clinics').delete().neq('id', '');  // Eliminar todas las clínicas
+      // No actualizamos estado local - las suscripciones se encargarán
+    } catch (error) {
+      console.error('Error clearing all data:', error);
+      throw error;
+    }
   }, []);
 
   const obtenerServiciosFiltrados = useCallback(() => {
