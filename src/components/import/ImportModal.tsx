@@ -36,12 +36,12 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
     reader.readAsText(file);
   };
 
-  const handleImport = () => {
+  const handleImport = async () => {
     if (!jsonContent) return;
     
     try {
       const data: ImportData = JSON.parse(jsonContent);
-      const result = importarDatos(data);
+      const result = await importarDatos(data);
       setImportResult(result);
       setJsonContent('');
       setParseError(null);

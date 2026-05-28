@@ -4,6 +4,9 @@ import React, { createContext, useContext, useState, useCallback, useEffect, Rea
 import { VeterinaryClinic, Service, FilterState, ImportData, StoredData } from './types';
 import { mockClinics, mockServices } from './data';
 import { supabase } from './supabase';
+import { normalizeClinic, normalizeService } from './normalizers';
+import { agregarClinica as agregarClinicaService, actualizarClinica as actualizarClinicaService, eliminarClinica as eliminarClinicaService } from './clinicService';
+import { agregarServicio as agregarServicioService, actualizarServicio as actualizarServicioService, eliminarServicio as eliminarServicioService, duplicarServicio as duplicarServicioService } from './serviceService';
 
 interface AppState {
   clinicas: VeterinaryClinic[];
@@ -24,7 +27,7 @@ interface AppContextType extends AppState {
   actualizarServicio: (id: string, servicio: Partial<Service>) => void;
   eliminarServicio: (id: string) => void;
   duplicarServicio: (id: string) => void;
-  importarDatos: (data: ImportData) => { clinicasImportadas: number; serviciosImportados: number };
+  importarDatos: (data: ImportData) => Promise<{ clinicasImportadas: number; serviciosImportados: number }>;
   limpiarTodosLosDatos: () => void;
   obtenerServiciosFiltrados: () => Service[];
   obtenerCiudades: () => string[];
@@ -57,14 +60,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const { data: clinicasData, error: clinicasError } = await supabase
           .from('clinics')
-          .select('*');
-        
+          .select('id, nombre, ciudad, direccion, servicio_domicilio, estado, fecha_creacion, fecha_actualizacion');
+
         const { data: serviciosData, error: serviciosError } = await supabase
           .from('services')
-          .select('*');
+          .select('id, categoria, nombre, descripcion, precio, proveedor, clinica_id, ciudad, modo_servicio, estado, fecha_creacion, fecha_actualizacion');
 
-        if (!clinicasError) setClinicas(clinicasData || []);
-        if (!serviciosError) setServicios(serviciosData || []);
+        if (!clinicasError) setClinicas((clinicasData || []).map(normalizeClinic));
+        if (!serviciosError) setServicios((serviciosData || []).map(normalizeService));
         setDatosCargados(true);
       } catch (error) {
         console.error('Error loading initial data:', error);
@@ -83,11 +86,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'clinics' }, 
         payload => {
+          const normalizedClinic = normalizeClinic(payload.new);
+
           if (payload.eventType === 'INSERT') {
-            setClinicas(prev => [...prev, payload.new]);
+            setClinicas(prev => [...prev, normalizedClinic]);
           } else if (payload.eventType === 'UPDATE') {
             setClinicas(prev => prev.map(c => 
-              c.id === payload.new.id ? payload.new : c
+              c.id === normalizedClinic.id ? normalizedClinic : c
             ));
           } else if (payload.eventType === 'DELETE') {
             setClinicas(prev => prev.filter(c => c.id !== payload.old.id));
@@ -101,11 +106,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'services' }, 
         payload => {
+          const normalizedService = normalizeService(payload.new);
+
           if (payload.eventType === 'INSERT') {
-            setServicios(prev => [...prev, payload.new]);
+            setServicios(prev => [...prev, normalizedService]);
           } else if (payload.eventType === 'UPDATE') {
             setServicios(prev => prev.map(s => 
-              s.id === payload.new.id ? payload.new : s
+              s.id === normalizedService.id ? normalizedService : s
             ));
           } else if (payload.eventType === 'DELETE') {
             setServicios(prev => prev.filter(s => s.id !== payload.old.id));
@@ -131,135 +138,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const agregarClinica = useCallback(async (clinica: VeterinaryClinic) => {
-    try {
-      const { error } = await supabase
-        .from('clinics')
-        .insert([clinica]);
-        
-      if (error) throw error;
-      // No actualizamos estado local - las suscripciones se encargarán
-    } catch (error) {
-      console.error('Error adding clinic:', error);
-      throw error;
-    }
+    await agregarClinicaService(clinica);
   }, []);
 
   const actualizarClinica = useCallback(async (id: string, actualizaciones: Partial<VeterinaryClinic>) => {
-    try {
-      const { error } = await supabase
-        .from('clinics')
-        .update({ 
-          ...actualizaciones,
-          fecha_actualizacion: new Date().toISOString().split('T')[0]
-        })
-        .eq('id', id);
-        
-      if (error) throw error;
-      // No actualizamos estado local - las suscripciones se encargarán
-    } catch (error) {
-      console.error('Error updating clinic:', error);
-      throw error;
-    }
+    await actualizarClinicaService(id, actualizaciones);
   }, []);
 
   const eliminarClinica = useCallback(async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('clinics')
-        .delete()
-        .eq('id', id);
-        
-      if (error) throw error;
-      // Los servicios asociados se eliminarán por CASCADE en la BD
-      // No actualizamos estado local - las suscripciones se encargarán
-    } catch (error) {
-      console.error('Error deleting clinic:', error);
-      throw error;
-    }
+    await eliminarClinicaService(id);
   }, []);
 
   const agregarServicio = useCallback(async (servicio: Service) => {
-    try {
-      const { error } = await supabase
-        .from('services')
-        .insert([servicio]);
-        
-      if (error) throw error;
-      // No actualizamos estado local - las suscripciones se encargarán
-    } catch (error) {
-      console.error('Error adding service:', error);
-      throw error;
-    }
+    await agregarServicioService(servicio);
   }, []);
 
   const actualizarServicio = useCallback(async (id: string, actualizaciones: Partial<Service>) => {
-    try {
-      const { error } = await supabase
-        .from('services')
-        .update({ 
-          ...actualizaciones,
-          fecha_actualizacion: new Date().toISOString().split('T')[0]
-        })
-        .eq('id', id);
-        
-      if (error) throw error;
-      // No actualizamos estado local - las suscripciones se encargarán
-    } catch (error) {
-      console.error('Error updating service:', error);
-      throw error;
-    }
+    await actualizarServicioService(id, actualizaciones);
   }, []);
 
   const eliminarServicio = useCallback(async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('services')
-        .delete()
-        .eq('id', id);
-        
-      if (error) throw error;
-      // No actualizamos estado local - las suscripciones se encargarán
-    } catch (error) {
-      console.error('Error deleting service:', error);
-      throw error;
-    }
+    await eliminarServicioService(id);
   }, []);
 
   const duplicarServicio = useCallback(async (id: string) => {
-    try {
-      // Primero obtenemos el servicio original
-      const { data: originalData, error: fetchError } = await supabase
-        .from('services')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (fetchError) throw fetchError;
-      if (!originalData) throw new Error('Service not found');
-      
-      // Creamos el nuevo servicio basado en el original
-      const nuevoServicio: Omit<Service, 'id'> = {
-        ...originalData,
-        nombre: `${originalData.nombre} (Copia)`,
-        estado: 'activo',
-        fecha_creacion: new Date().toISOString().split('T')[0],
-        fecha_actualizacion: new Date().toISOString().split('T')[0],
-      };
-      
-      // Eliminamos el id para que la BD genere uno nuevo
-      delete nuevoServicio.id;
-      
-      // Insertamos el nuevo servicio
-      const { error } = await supabase
-        .from('services')
-        .insert([nuevoServicio]);
-        
-      if (error) throw error;
-      // No actualizamos estado local - las suscripciones se encargarán
-    } catch (error) {
-      console.error('Error duplicating service:', error);
-      throw error;
-    }
+    await duplicarServicioService(id);
   }, []);
 
   const importarDatos = useCallback(async (data: ImportData): Promise<{ clinicasImportadas: number; serviciosImportados: number }> => {
@@ -269,7 +172,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       for (const vet of data.veterinarias) {
         const fechaActual = new Date().toISOString().split('T')[0];
-        
+
         // Insertamos la clínica
         const clinicaData = {
           nombre: vet.nombre,
@@ -286,7 +189,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .insert([clinicaData])
           .select()
           .single();
-          
+
         if (clinicaError) throw clinicaError;
         clinicasCount++;
 
@@ -294,7 +197,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         for (const srv of vet.servicios) {
           const validCategories = ['CONSULTA', 'CIRUGIA', 'LABORATORIO', 'IMAGENES', 'VACUNAS', 'PROCEDIMIENTOS'];
           const categoria = validCategories.includes(srv.categoria) ? srv.categoria : 'CONSULTA';
-          
+
           const modoServicio = srv.modo_servicio === 'EN_SEDE' ? 'EN_SEDE' 
             : srv.modo_servicio === 'A_DOMICILIO' ? 'A_DOMICILIO' 
             : 'AMBOS';
@@ -316,12 +219,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const { error: servicioError } = await supabase
             .from('services')
             .insert([servicioData]);
-            
+
           if (servicioError) throw servicioError;
           serviciosCount++;
         }
       }
-      
+
       return { clinicasImportadas: clinicasCount, serviciosImportados: serviciosCount };
     } catch (error) {
       console.error('Error importing data:', error);
