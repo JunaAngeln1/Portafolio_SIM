@@ -1,14 +1,16 @@
 'use client';
 
 import React from 'react';
-import { Bell, Menu, User } from 'lucide-react';
+import { Bell, Menu, User, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 interface TopBarProps {
   titulo: string;
   onMenuClick?: () => void;
+  onToggleSidebar?: () => void;
+  sidebarAbierto?: boolean;
 }
 
-export default function TopBar({ titulo, onMenuClick }: TopBarProps) {
+export default function TopBar({ titulo, onMenuClick, onToggleSidebar, sidebarAbierto }: TopBarProps) {
   return (
     <header className="h-16 bg-white border-b border-border flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
@@ -17,6 +19,17 @@ export default function TopBar({ titulo, onMenuClick }: TopBarProps) {
           className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
         >
           <Menu className="w-5 h-5 text-gray-600" />
+        </button>
+        <button 
+          onClick={onToggleSidebar}
+          className="hidden lg:flex p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          title={sidebarAbierto ? 'Colapsar menú' : 'Expandir menú'}
+        >
+          {sidebarAbierto ? (
+            <PanelLeftClose className="w-5 h-5 text-gray-600" />
+          ) : (
+            <PanelLeftOpen className="w-5 h-5 text-gray-600" />
+          )}
         </button>
         <h2 className="text-xl font-semibold text-gray-900">{titulo}</h2>
       </div>

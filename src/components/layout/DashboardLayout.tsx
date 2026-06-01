@@ -16,7 +16,7 @@ export default function DashboardLayout({ children, titulo }: DashboardLayoutPro
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar />
+      <Sidebar abierto={sidebarAbierto} />
       
       {menuMovilAbierto && (
         <div 
@@ -25,10 +25,12 @@ export default function DashboardLayout({ children, titulo }: DashboardLayoutPro
         />
       )}
       
-      <div className={`lg:ml-64 transition-all duration-300 ${sidebarAbierto ? 'ml-64' : 'ml-0'}`}>
+      <div className={`transition-all duration-300 ${sidebarAbierto ? 'lg:ml-64' : 'lg:ml-20'}`}>
         <TopBar 
           titulo={titulo} 
           onMenuClick={() => setMenuMovilAbierto(!menuMovilAbierto)}
+          onToggleSidebar={() => setSidebarAbierto(!sidebarAbierto)}
+          sidebarAbierto={sidebarAbierto}
         />
         <main className="p-6">
           {children}
