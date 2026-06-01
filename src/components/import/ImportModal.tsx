@@ -146,7 +146,7 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
                   setParseError('JSON inválido');
                 }
               }}
-              placeholder={`{\n  "veterinarias": [\n    {\n      "nombre": "Mi Veterinaria",\n      "ciudad": "Bogotá",\n      "servicio_domicilio": true,\n      "servicios": [\n        {\n          "nombre": "Consulta General",\n          "categoria": "CONSULTA",\n          "precio": 45000\n        }\n      ]\n    }\n  ]\n}`}
+              placeholder={`{\n  "veterinarias": [\n    {\n      "nombre": "Mi Veterinaria",\n      "ciudad": "Bogotá",\n      "servicio_domicilio": true,\n      "servicios": [\n        {\n          "nombre": "Consulta General",\n          "categoria": "CONSULTA",\n          "precio": 45000,\n          "precio_descuento": 38000\n        }\n      ]\n    }\n  ]\n}`}
               className="w-full h-48 px-4 py-3 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none font-mono text-sm resize-none"
             />
             {parseError && (
@@ -172,6 +172,7 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
           "categoria": "CONSULTA|CIRUGIA|LABORATORIO|IMAGENES|VACUNAS|PROCEDIMIENTOS",
           "descripcion": "Descripción (opcional)",
           "precio": 45000,
+          "precio_descuento": 38000,
           "modo_servicio": "EN_SEDE|A_DOMICILIO|AMBOS (opcional)"
         }
       ]

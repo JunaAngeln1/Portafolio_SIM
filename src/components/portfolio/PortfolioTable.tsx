@@ -61,6 +61,7 @@ export default function PortfolioTable() {
         nombre: data.nombre || '',
         descripcion: data.descripcion || '',
         precio: data.precio || 0,
+        precioDescuento: data.precioDescuento || null,
         proveedor: data.proveedor || clinica?.nombre || '',
         clinicaId: data.clinicaId || '',
         ciudad: data.ciudad || clinica?.ciudad || '',
@@ -78,6 +79,29 @@ export default function PortfolioTable() {
   const handleDelete = (id: string) => {
     eliminarServicio(id);
     setConfirmDelete(null);
+  };
+
+  const handleExportar = () => {
+    const data = serviciosFiltrados.map(s => ({
+      nombre: s.nombre,
+      categoria: s.categoria,
+      descripcion: s.descripcion,
+      precio: s.precio,
+      precio_descuento: s.precioDescuento,
+      proveedor: s.proveedor,
+      ciudad: s.ciudad,
+      modo_servicio: s.modoServicio,
+      estado: s.estado,
+    }));
+    
+    const blob = new Blob([JSON.stringify({ servicios: data }, null, 2)], 
+      { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `portafolio_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -181,7 +205,10 @@ export default function PortfolioTable() {
           Mostrando <span className="font-semibold">{serviciosFiltrados.length}</span> servicios
         </p>
         <div className="flex items-center gap-3">
-          <button className="px-4 py-2 border border-border rounded-xl text-gray-700 font-medium hover:bg-gray-50 flex items-center gap-2 transition-colors">
+          <button 
+            onClick={handleExportar}
+            className="px-4 py-2 border border-border rounded-xl text-gray-700 font-medium hover:bg-gray-50 flex items-center gap-2 transition-colors"
+          >
             <Download className="w-4 h-4" />
             Exportar
           </button>
@@ -258,7 +285,16 @@ export default function PortfolioTable() {
                     <td className="px-6 py-4">
                       <span className="text-sm text-gray-600">{modeLabels[servicio.modoServicio]}</span>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-gray-900">{formatearPrecio(servicio.precio)}</td>
+                    <td className="px-6 py-4">
+                      {servicio.precioDescuento ? (
+                        <div className="flex flex-col">
+                          <span className="text-xs text-gray-400 line-through">{formatearPrecio(servicio.precio)}</span>
+                          <span className="font-semibold text-emerald-600">{formatearPrecio(servicio.precioDescuento)}</span>
+                        </div>
+                      ) : (
+                        <span className="font-semibold text-gray-900">{formatearPrecio(servicio.precio)}</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${statusColors[servicio.estado]}`}>
                         {servicio.estado}

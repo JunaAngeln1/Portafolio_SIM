@@ -67,7 +67,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         const { data: serviciosData, error: serviciosError } = await supabase
           .from('services')
-          .select('id, categoria, nombre, descripcion, precio, proveedor, clinica_id, ciudad, modo_servicio, estado, fecha_creacion, fecha_actualizacion');
+          .select('id, categoria, nombre, descripcion, precio, precio_descuento, proveedor, clinica_id, ciudad, modo_servicio, estado, fecha_creacion, fecha_actualizacion');
 
         if (!clinicasError) setClinicas((clinicasData || []).map(normalizeClinic));
         if (!serviciosError) setServicios((serviciosData || []).map(normalizeService));
@@ -212,6 +212,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             nombre: srv.nombre,
             descripcion: srv.descripcion || '',
             precio: srv.precio || 0,
+            precio_descuento: srv.precio_descuento || null,
             proveedor: vet.nombre,
             clinica_id: clinicaResult.id,
             ciudad: vet.ciudad,
