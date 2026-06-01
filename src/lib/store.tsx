@@ -14,6 +14,7 @@ interface AppState {
   filtros: FilterState;
   sidebarAbierto: boolean;
   datosCargados: boolean;
+  busquedaRealizada: boolean;
 }
 
 interface AppContextType extends AppState {
@@ -32,6 +33,7 @@ interface AppContextType extends AppState {
   obtenerServiciosFiltrados: () => Service[];
   obtenerCiudades: () => string[];
   obtenerProveedores: () => string[];
+  busquedaRealizada: boolean;
 }
 
 const filtrosPorDefecto: FilterState = {
@@ -53,6 +55,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [filtros, setFiltrosState] = useState<FilterState>(filtrosPorDefecto);
   const [sidebarAbierto, setSidebarAbierto] = useState(true);
   const [datosCargados, setDatosCargados] = useState(false);
+  const [busquedaRealizada, setBusquedaRealizada] = useState(false);
 
   useEffect(() => {
     // Cargar datos iniciales desde Supabase
@@ -131,10 +134,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Funciones CRUD que operan directamente contra Supabase
   const setFiltros = useCallback((nuevosFiltros: Partial<FilterState>) => {
     setFiltrosState(prev => ({ ...prev, ...nuevosFiltros }));
+    setBusquedaRealizada(true);
   }, []);
 
   const limpiarFiltros = useCallback(() => {
     setFiltrosState(filtrosPorDefecto);
+    setBusquedaRealizada(false);
   }, []);
 
   const agregarClinica = useCallback(async (clinica: VeterinaryClinic) => {
@@ -245,6 +250,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const obtenerServiciosFiltrados = useCallback(() => {
+    if (!busquedaRealizada) return [];
+    
     return servicios.filter(servicio => {
       if (filtros.clinicaId !== 'TODAS' && servicio.clinicaId !== filtros.clinicaId) return false;
       if (filtros.ciudad !== 'TODAS' && servicio.ciudad !== filtros.ciudad) return false;
@@ -262,7 +269,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
       return true;
     });
-  }, [servicios, filtros]);
+  }, [servicios, filtros, busquedaRealizada]);
 
   const obtenerCiudades = useCallback(() => {
     const ciudades = [...new Set(clinicas.map(c => c.ciudad))];
@@ -281,6 +288,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       filtros,
       sidebarAbierto,
       datosCargados,
+      busquedaRealizada,
       setSidebarAbierto,
       setFiltros,
       limpiarFiltros,

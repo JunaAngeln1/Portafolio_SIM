@@ -24,6 +24,7 @@ export default function PortfolioTable() {
     servicios, 
     clinicas, 
     filtros, 
+    busquedaRealizada,
     setFiltros, 
     limpiarFiltros,
     agregarServicio, 
@@ -39,6 +40,7 @@ export default function PortfolioTable() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [servicioEditando, setServicioEditando] = useState<Service | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
 
   const serviciosFiltrados = obtenerServiciosFiltrados();
   const ciudades = obtenerCiudades();
@@ -210,7 +212,16 @@ export default function PortfolioTable() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {serviciosFiltrados.length === 0 ? (
+              {!busquedaRealizada ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
+                    <div className="flex flex-col items-center gap-2">
+                      <Search className="w-8 h-8 text-gray-300" />
+                      <p>Use los filtros o el buscador para encontrar servicios</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : serviciosFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                     No se encontraron servicios con los criterios seleccionados
@@ -225,7 +236,21 @@ export default function PortfolioTable() {
                     <td className="px-6 py-4">
                       <div>
                         <p className="font-medium text-gray-900">{servicio.nombre}</p>
-                        <p className="text-sm text-gray-500 truncate max-w-[200px]">{servicio.descripcion}</p>
+                        <div 
+                          className="relative"
+                          onMouseEnter={() => setHoveredRow(servicio.id)}
+                          onMouseLeave={() => setHoveredRow(null)}
+                        >
+                          <p className="text-sm text-gray-500 truncate max-w-[200px] cursor-default">
+                            {servicio.descripcion}
+                          </p>
+                          {hoveredRow === servicio.id && servicio.descripcion && (
+                            <div className="absolute z-50 bottom-full left-0 mb-2 w-72 p-3 bg-gray-900 text-white text-sm rounded-lg shadow-lg animate-fade-in">
+                              <p className="whitespace-normal">{servicio.descripcion}</p>
+                              <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-gray-700">{servicio.proveedor}</td>
