@@ -112,7 +112,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Precio (COP)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Precio Particular (COP)</label>
             <input
               type="number"
               value={formData.precio}
@@ -123,15 +123,15 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Precio con Descuento (COP) - Opcional</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Precio SIM (COP) <span className="text-gray-400 font-normal">— opcional</span></label>
             <input
               type="number"
-              value={formData.precioDescuento || ''}
+              value={formData.precioDescuento ?? ''}
               onChange={(e) => setFormData({ ...formData, precioDescuento: e.target.value ? Number(e.target.value) : null })}
+              placeholder="Dejar vacío si no aplica descuento"
               className="w-full px-4 py-2.5 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
-              placeholder="Dejar vacío si no aplica"
             />
-            <p className="text-xs text-gray-400 mt-1">Si se ingresa, se mostrará como precio especial</p>
+            <p className="text-xs text-gray-400 mt-1">Precio con descuento especial para la veterinaria</p>
           </div>
 
           <div>

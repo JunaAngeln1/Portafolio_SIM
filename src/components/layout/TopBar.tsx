@@ -14,7 +14,7 @@ export default function TopBar({ titulo, onMenuClick, onToggleSidebar, sidebarAb
   return (
     <header className="h-16 bg-white border-b border-border flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
-        <button 
+        <button
           onClick={onMenuClick}
           className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
         >

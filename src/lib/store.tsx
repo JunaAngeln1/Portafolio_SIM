@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import { VeterinaryClinic, Service, FilterState, ImportData, StoredData } from './types';
 import { mockClinics, mockServices } from './data';
 import { supabase } from './supabase';
@@ -56,8 +56,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sidebarAbierto, setSidebarAbierto] = useState(true);
   const [datosCargados, setDatosCargados] = useState(false);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
+  const subscriptionsCleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    // Si ya hay suscripciones activas, limpiarlas primero
+    if (subscriptionsCleanupRef.current) {
+      subscriptionsCleanupRef.current();
+    }
+
+    let cancelled = false;
+
     // Cargar datos iniciales desde Supabase
     const loadInitialData = async () => {
       try {
@@ -69,26 +77,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .from('services')
           .select('id, categoria, nombre, descripcion, precio, precio_descuento, proveedor, clinica_id, ciudad, modo_servicio, estado, fecha_creacion, fecha_actualizacion');
 
-        if (!clinicasError) setClinicas((clinicasData || []).map(normalizeClinic));
-        if (!serviciosError) setServicios((serviciosData || []).map(normalizeService));
-        setDatosCargados(true);
+        if (!cancelled) {
+          if (!clinicasError) setClinicas((clinicasData || []).map(normalizeClinic));
+          if (!serviciosError) setServicios((serviciosData || []).map(normalizeService));
+          setDatosCargados(true);
+        }
       } catch (error) {
         console.error('Error loading initial data:', error);
-        // Fallback a datos mock si hay error
-        setClinicas(mockClinics);
-        setServicios(mockServices);
-        setDatosCargados(true);
+        if (!cancelled) {
+          setClinicas(mockClinics);
+          setServicios(mockServices);
+          setDatosCargados(true);
+        }
       }
     };
 
     loadInitialData();
 
     // Suscribirse a cambios en tiempo real
+    const channelNameClinics = `clinicas-${Date.now()}`;
+    const channelNameServices = `servicios-${Date.now()}`;
+
     const clinicsSubscription = supabase
-      .channel('clinicas-changes')
+      .channel(channelNameClinics)
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'clinics' }, 
         payload => {
+          if (cancelled) return;
           const normalizedClinic = normalizeClinic(payload.new);
 
           if (payload.eventType === 'INSERT') {
@@ -105,10 +120,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .subscribe();
 
     const servicesSubscription = supabase
-      .channel('servicios-changes')
+      .channel(channelNameServices)
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'services' }, 
         payload => {
+          if (cancelled) return;
           const normalizedService = normalizeService(payload.new);
 
           if (payload.eventType === 'INSERT') {
@@ -124,10 +140,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
-    // Limpiar suscripciones al desmontar
-    return () => {
+    // Guardar función de limpieza
+    subscriptionsCleanupRef.current = () => {
       supabase.removeChannel(clinicsSubscription);
       supabase.removeChannel(servicesSubscription);
+    };
+
+    // Limpiar suscripciones al desmontar
+    return () => {
+      cancelled = true;
+      if (subscriptionsCleanupRef.current) {
+        subscriptionsCleanupRef.current();
+        subscriptionsCleanupRef.current = null;
+      }
     };
   }, []);
 
@@ -144,31 +169,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const agregarClinica = useCallback(async (clinica: VeterinaryClinic) => {
     await agregarClinicaService(clinica);
+    setClinicas(prev => [...prev, clinica]);
   }, []);
 
   const actualizarClinica = useCallback(async (id: string, actualizaciones: Partial<VeterinaryClinic>) => {
     await actualizarClinicaService(id, actualizaciones);
+    setClinicas(prev => prev.map(c => 
+      c.id === id ? { ...c, ...actualizaciones, fechaActualizacion: new Date().toISOString().split('T')[0] } : c
+    ));
   }, []);
 
   const eliminarClinica = useCallback(async (id: string) => {
     await eliminarClinicaService(id);
+    setClinicas(prev => prev.filter(c => c.id !== id));
   }, []);
 
   const agregarServicio = useCallback(async (servicio: Service) => {
     await agregarServicioService(servicio);
+    setServicios(prev => [...prev, servicio]);
   }, []);
 
   const actualizarServicio = useCallback(async (id: string, actualizaciones: Partial<Service>) => {
     await actualizarServicioService(id, actualizaciones);
+    setServicios(prev => prev.map(s => 
+      s.id === id ? { ...s, ...actualizaciones, fechaActualizacion: new Date().toISOString().split('T')[0] } : s
+    ));
   }, []);
 
   const eliminarServicio = useCallback(async (id: string) => {
     await eliminarServicioService(id);
+    setServicios(prev => prev.filter(s => s.id !== id));
   }, []);
 
   const duplicarServicio = useCallback(async (id: string) => {
     await duplicarServicioService(id);
-  }, []);
+    const original = servicios.find(s => s.id === id);
+    if (original) {
+      const fechaActual = new Date().toISOString().split('T')[0];
+      const nuevoServicio: Service = {
+        ...original,
+        id: `srv_${Date.now()}`,
+        nombre: `${original.nombre} (Copia)`,
+        estado: 'activo',
+        fechaCreacion: fechaActual,
+        fechaActualizacion: fechaActual,
+      };
+      setServicios(prev => [...prev, nuevoServicio]);
+    }
+  }, [servicios]);
 
   const importarDatos = useCallback(async (data: ImportData): Promise<{ clinicasImportadas: number; serviciosImportados: number }> => {
     let clinicasCount = 0;
@@ -212,7 +260,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             nombre: srv.nombre,
             descripcion: srv.descripcion || '',
             precio: srv.precio || 0,
-            precio_descuento: srv.precio_descuento || null,
+            precio_descuento: srv.precio_descuento ?? null,
             proveedor: vet.nombre,
             clinica_id: clinicaResult.id,
             ciudad: vet.ciudad,

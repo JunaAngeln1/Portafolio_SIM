@@ -60,7 +60,7 @@ export interface ImportData {
       categoria: string;
       descripcion?: string;
       precio: number;
-      precio_descuento?: number;
+      precio_descuento?: number | null;
       modo_servicio?: string;
     }[];
   }[];

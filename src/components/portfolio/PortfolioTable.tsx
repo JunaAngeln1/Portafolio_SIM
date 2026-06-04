@@ -61,7 +61,7 @@ export default function PortfolioTable() {
         nombre: data.nombre || '',
         descripcion: data.descripcion || '',
         precio: data.precio || 0,
-        precioDescuento: data.precioDescuento || null,
+        precioDescuento: data.precioDescuento ?? null,
         proveedor: data.proveedor || clinica?.nombre || '',
         clinicaId: data.clinicaId || '',
         ciudad: data.ciudad || clinica?.ciudad || '',
@@ -287,8 +287,8 @@ export default function PortfolioTable() {
                     </td>
                     <td className="px-6 py-4">
                       {servicio.precioDescuento ? (
-                        <div className="flex flex-col">
-                          <span className="text-xs text-gray-400 line-through">{formatearPrecio(servicio.precio)}</span>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm text-gray-500 line-through">{formatearPrecio(servicio.precio)}</span>
                           <span className="font-semibold text-emerald-600">{formatearPrecio(servicio.precioDescuento)}</span>
                         </div>
                       ) : (

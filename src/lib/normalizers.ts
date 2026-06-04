@@ -32,7 +32,7 @@ export const normalizeService = (row: any): Service => ({
   nombre: row.nombre,
   descripcion: row.descripcion || '',
   precio: Number(row.precio ?? 0),
-  precioDescuento: row.precio_descuento ? Number(row.precio_descuento) : null,
+  precioDescuento: row.precio_descuento ?? row.precioDescuento ?? null,
   proveedor: row.proveedor,
   clinicaId: row.clinica_id ?? row.clinicaId ?? '',
   ciudad: row.ciudad,
@@ -50,7 +50,7 @@ export const serializeServiceForDb = (servicio: Partial<Service>) => {
   if (servicio.nombre !== undefined) dbRow.nombre = servicio.nombre;
   if (servicio.descripcion !== undefined) dbRow.descripcion = servicio.descripcion;
   if (servicio.precio !== undefined) dbRow.precio = servicio.precio;
-  if ('precioDescuento' in servicio) dbRow.precio_descuento = servicio.precioDescuento;
+  if (servicio.precioDescuento !== undefined) dbRow.precio_descuento = servicio.precioDescuento;
   if (servicio.proveedor !== undefined) dbRow.proveedor = servicio.proveedor;
   if (servicio.clinicaId !== undefined) dbRow.clinica_id = servicio.clinicaId;
   if (servicio.ciudad !== undefined) dbRow.ciudad = servicio.ciudad;
