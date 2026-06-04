@@ -25,6 +25,7 @@ export interface Service {
   nombre: string;
   descripcion: string;
   precio: number;
+  precioDescuento: number | null;
   proveedor: string;
   clinicaId: string;
   ciudad: string;
@@ -59,6 +60,7 @@ export interface ImportData {
       categoria: string;
       descripcion?: string;
       precio: number;
+      precio_descuento?: number | null;
       modo_servicio?: string;
     }[];
   }[];

@@ -171,13 +171,16 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
           "nombre": "Nombre del servicio",
           "categoria": "CONSULTA|CIRUGIA|LABORATORIO|IMAGENES|VACUNAS|PROCEDIMIENTOS",
           "descripcion": "Descripción (opcional)",
-          "precio": 45000,
+          "precio": 50000,
+          "precio_descuento": 42000 o null,
           "modo_servicio": "EN_SEDE|A_DOMICILIO|AMBOS (opcional)"
         }
       ]
     }
   ]
 }`}</pre>
+            <p className="text-xs text-blue-600 mt-2">• <strong>precio</strong>: precio particular (regular) — siempre requerido</p>
+            <p className="text-xs text-blue-600">• <strong>precio_descuento</strong>: precio SIM (con descuento) — null si no aplica</p>
           </div>
         </div>
 

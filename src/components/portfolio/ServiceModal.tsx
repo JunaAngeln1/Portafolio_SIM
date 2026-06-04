@@ -19,6 +19,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
     nombre: '',
     descripcion: '',
     precio: 0,
+    precioDescuento: null as number | null,
     clinicaId: '',
     modoServicio: 'EN_SEDE' as ServiceMode,
     estado: 'activo' as 'activo' | 'inactivo',
@@ -31,6 +32,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
         nombre: servicio.nombre,
         descripcion: servicio.descripcion,
         precio: servicio.precio,
+        precioDescuento: servicio.precioDescuento,
         clinicaId: servicio.clinicaId,
         modoServicio: servicio.modoServicio,
         estado: servicio.estado,
@@ -41,6 +43,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
         nombre: '',
         descripcion: '',
         precio: 0,
+        precioDescuento: null,
         clinicaId: clinicas[0]?.id || '',
         modoServicio: 'EN_SEDE',
         estado: 'activo',
@@ -109,7 +112,7 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Precio (COP)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Precio Particular (COP)</label>
             <input
               type="number"
               value={formData.precio}
@@ -117,6 +120,18 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
               className="w-full px-4 py-2.5 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Precio SIM (COP) <span className="text-gray-400 font-normal">— opcional</span></label>
+            <input
+              type="number"
+              value={formData.precioDescuento ?? ''}
+              onChange={(e) => setFormData({ ...formData, precioDescuento: e.target.value ? Number(e.target.value) : null })}
+              placeholder="Dejar vacío si no aplica descuento"
+              className="w-full px-4 py-2.5 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+            />
+            <p className="text-xs text-gray-400 mt-1">Precio con descuento especial para la veterinaria</p>
           </div>
 
           <div>
