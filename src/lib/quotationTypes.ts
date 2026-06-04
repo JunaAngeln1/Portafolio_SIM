@@ -1,6 +1,6 @@
 import { ServiceCategory } from './types';
 
-export type DiscountType = 'SIM' | 'NINGUNO' | 'PERSONALIZADO';
+export type DiscountType = 'SIM' | 'NINGUNO' | 'PERSONALIZADO' | 'EPP';
 
 export type QuotationViewMode = 'basico' | 'detallado';
 
@@ -22,6 +22,9 @@ export interface QuotationItem {
   porcentajeDescuento: number;
   valorDescuento: number;
   precioFinal: number;
+  totalQuimicas: number;
+  quimicasCubiertas: number;
+  descuentoEPP: number;
 }
 
 export interface Quotation {

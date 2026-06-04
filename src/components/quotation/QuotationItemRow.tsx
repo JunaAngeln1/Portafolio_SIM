@@ -11,7 +11,7 @@ interface QuotationItemRowProps {
 }
 
 export default function QuotationItemRow({ item }: QuotationItemRowProps) {
-  const { eliminarItem, setCantidad, setTipoDescuento } = useQuotation();
+  const { beneficioPlus, eliminarItem, setCantidad, setTipoDescuento, setQuimicasFields } = useQuotation();
 
   const formatearPrecio = (precio: number) => {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(precio);
@@ -30,7 +30,19 @@ export default function QuotationItemRow({ item }: QuotationItemRowProps) {
     setTipoDescuento(item.id, 'PERSONALIZADO', clamped);
   };
 
+  const handleTotalQuimicasChange = (valor: number) => {
+    const total = Math.max(1, Math.min(99, valor));
+    setQuimicasFields(item.id, total, item.quimicasCubiertas);
+  };
+
+  const handleCubiertasChange = (valor: number) => {
+    const cubiertas = Math.max(0, Math.min(item.totalQuimicas, valor));
+    setQuimicasFields(item.id, item.totalQuimicas, cubiertas);
+  };
+
   const tieneSim = item.precioSim !== null;
+  const esLaboratorio = item.servicio.categoria === 'LABORATORIO';
+  const mostrarCamposEPP = beneficioPlus && esLaboratorio;
 
   return (
     <div className="bg-white border border-border rounded-xl p-3 space-y-2">
@@ -111,6 +123,43 @@ export default function QuotationItemRow({ item }: QuotationItemRowProps) {
           </button>
         </div>
       </div>
+
+      {mostrarCamposEPP && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 space-y-2">
+          <p className="text-[10px] text-emerald-600 uppercase font-bold tracking-wider">Beneficio Plus</p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-emerald-700 font-medium block mb-0.5">Total químicas</label>
+              <input
+                type="number"
+                value={item.totalQuimicas || ''}
+                onChange={(e) => handleTotalQuimicasChange(Number(e.target.value))}
+                placeholder="0"
+                min={1}
+                max={99}
+                className="w-full px-2 py-1 border border-emerald-300 rounded text-xs text-center font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none bg-white"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-emerald-700 font-medium block mb-0.5">Cubiertas</label>
+              <input
+                type="number"
+                value={item.quimicasCubiertas || ''}
+                onChange={(e) => handleCubiertasChange(Number(e.target.value))}
+                placeholder="0"
+                min={0}
+                max={item.totalQuimicas}
+                className="w-full px-2 py-1 border border-emerald-300 rounded text-xs text-center font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none bg-white"
+              />
+            </div>
+          </div>
+          {item.descuentoEPP > 0 && (
+            <p className="text-xs font-semibold text-emerald-700 text-right">
+              Ahorro EPP: -{formatearPrecio(item.descuentoEPP)}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center justify-between pt-2 border-t border-border">
         <span className="text-xs text-gray-500">Total</span>

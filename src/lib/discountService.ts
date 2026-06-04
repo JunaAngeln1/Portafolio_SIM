@@ -1,4 +1,11 @@
-import { QuotationItem, Quotation, QuotationTotals, DiscountType } from './quotationTypes';
+import { QuotationItem, Quotation, QuotationTotals } from './quotationTypes';
+
+export function calcularDescuentoEPP(precioRegular: number, totalQuimicas: number, quimicasCubiertas: number): number {
+  if (totalQuimicas <= 0 || quimicasCubiertas <= 0) return 0;
+  const cubiertas = Math.min(quimicasCubiertas, totalQuimicas);
+  const valorPorQuimica = precioRegular / totalQuimicas;
+  return valorPorQuimica * 0.70 * cubiertas;
+}
 
 export function calcularItem(item: QuotationItem): { valorDescuento: number; precioFinal: number } {
   let precioUnitario = item.precioRegular;
@@ -10,7 +17,12 @@ export function calcularItem(item: QuotationItem): { valorDescuento: number; pre
   } else if (item.tipoDescuento === 'PERSONALIZADO') {
     descuentoUnitario = item.precioRegular * (item.porcentajeDescuento / 100);
     precioUnitario = item.precioRegular - descuentoUnitario;
+  } else if (item.tipoDescuento === 'EPP') {
+    descuentoUnitario = calcularDescuentoEPP(item.precioRegular, item.totalQuimicas, item.quimicasCubiertas);
+    precioUnitario = item.precioRegular - descuentoUnitario;
   }
+
+  if (precioUnitario < 0) precioUnitario = 0;
 
   return {
     valorDescuento: descuentoUnitario * item.cantidad,
@@ -20,7 +32,10 @@ export function calcularItem(item: QuotationItem): { valorDescuento: number; pre
 
 export function recalcularItem(item: QuotationItem): QuotationItem {
   const resultado = calcularItem(item);
-  return { ...item, valorDescuento: resultado.valorDescuento, precioFinal: resultado.precioFinal };
+  const descuentoEPP = item.tipoDescuento === 'EPP'
+    ? calcularDescuentoEPP(item.precioRegular, item.totalQuimicas, item.quimicasCubiertas)
+    : 0;
+  return { ...item, valorDescuento: resultado.valorDescuento, precioFinal: resultado.precioFinal, descuentoEPP };
 }
 
 export function recalcularTotales(items: QuotationItem[]): QuotationTotals {
@@ -42,6 +57,9 @@ export function crearItemDesdeServicio(servicioId: string, servicio: QuotationIt
     porcentajeDescuento: 0,
     valorDescuento: 0,
     precioFinal: precioRegular,
+    totalQuimicas: 0,
+    quimicasCubiertas: 0,
+    descuentoEPP: 0,
   };
   const resultado = calcularItem(item);
   return { ...item, valorDescuento: resultado.valorDescuento, precioFinal: resultado.precioFinal };
@@ -59,6 +77,7 @@ const categoryLabels: Record<string, string> = {
 const discountTypeLabels: Record<string, string> = {
   SIM: 'Precio SIM',
   PERSONALIZADO: 'Personalizado',
+  EPP: 'Beneficio Plus',
 };
 
 export function generarTextoBasico(q: Quotation): string {
@@ -78,7 +97,8 @@ export function generarTextoBasico(q: Quotation): string {
     const cantStr = item.cantidad > 1 ? ` ×${item.cantidad}` : '';
     if (item.valorDescuento > 0) {
       const ahorro = formatearMoneda(item.valorDescuento);
-      lineas.push(`${i + 1}. ${item.servicio.nombre}${cantStr} ... ${precioReg} → ${subtotal} (Ahorro: ${ahorro})`);
+      const eppStr = item.tipoDescuento === 'EPP' ? ' [Plus]' : '';
+      lineas.push(`${i + 1}. ${item.servicio.nombre}${eppStr}${cantStr} ... ${precioReg} → ${subtotal} (Ahorro: ${ahorro})`);
     } else {
       lineas.push(`${i + 1}. ${item.servicio.nombre}${cantStr} ... ${subtotal}`);
     }
@@ -130,10 +150,15 @@ export function generarTextoDetallado(q: Quotation): string {
     lineas.push(`   Precio unitario: ${formatearMoneda(item.precioRegular)}`);
     lineas.push(`   Cantidad: ${item.cantidad}`);
     lineas.push(`   Subtotal: ${formatearMoneda(item.precioRegular * item.cantidad)}`);
-    lineas.push(`   Tipo descuento: ${discountTypeLabels[item.tipoDescuento] || 'Precio SIM'}`);
+    lineas.push(`   Tipo descuento: ${discountTypeLabels[item.tipoDescuento] || 'Ninguno'}`);
 
     if (item.tipoDescuento === 'PERSONALIZADO') {
       lineas.push(`   Porcentaje: ${item.porcentajeDescuento}%`);
+    }
+    if (item.tipoDescuento === 'EPP') {
+      lineas.push(`   Total químicas: ${item.totalQuimicas}`);
+      lineas.push(`   Químicas cubiertas: ${item.quimicasCubiertas}`);
+      lineas.push(`   Descuento EPP: -${formatearMoneda(item.descuentoEPP)}`);
     }
     if (item.precioSim) {
       lineas.push(`   Precio SIM unitario: ${formatearMoneda(item.precioSim)}`);

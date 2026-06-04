@@ -17,11 +17,14 @@ interface QuotationContextType {
   setFecha: (fecha: string) => void;
   comentarios: string;
   setComentarios: (comentarios: string) => void;
+  beneficioPlus: boolean;
+  setBeneficioPlus: (valor: boolean) => void;
   items: QuotationItem[];
   agregarItem: (servicioId: string) => void;
   eliminarItem: (itemId: string) => void;
   setCantidad: (itemId: string, cantidad: number) => void;
   setTipoDescuento: (itemId: string, tipo: DiscountType, porcentaje?: number) => void;
+  setQuimicasFields: (itemId: string, total: number, cubiertas: number) => void;
   viewMode: QuotationViewMode;
   toggleViewMode: () => void;
   totalSinDescuento: number;
@@ -45,79 +48,80 @@ function obtenerFechaActual(): string {
 export function QuotationProvider({ children }: { children: ReactNode }) {
   const { clinicas, servicios } = useApp();
 
-  const [ciudadSeleccionada, setCiudadSeleccionada] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('simp_q_ciudad') || '';
-    }
-    return '';
-  });
-  const [clinicaSeleccionada, setClinicaSeleccionada] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('simp_q_clinica') || '';
-    }
-    return '';
-  });
-  const [clienteNombre, setClienteNombre] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('simp_q_cliente') || '';
-    }
-    return '';
-  });
-  const [fecha, setFecha] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('simp_q_fecha') || obtenerFechaActual();
-    }
-    return obtenerFechaActual();
-  });
-  const [comentarios, setComentarios] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('simp_q_comentarios') || '';
-    }
-    return '';
-  });
-  const [items, setItems] = useState<QuotationItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('simp_q_items');
-      if (saved) {
-        try { return JSON.parse(saved); } catch { return []; }
-      }
-    }
-    return [];
-  });
-  const [viewMode, setViewMode] = useState<QuotationViewMode>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('simp_q_viewMode') as QuotationViewMode) || 'basico';
-    }
-    return 'basico';
-  });
+  const [ciudadSeleccionada, setCiudadSeleccionada] = useState('');
+  const [clinicaSeleccionada, setClinicaSeleccionada] = useState('');
+  const [clienteNombre, setClienteNombre] = useState('');
+  const [fecha, setFecha] = useState(obtenerFechaActual());
+  const [comentarios, setComentarios] = useState('');
+  const [beneficioPlus, setBeneficioPlusState] = useState(false);
+  const [items, setItems] = useState<QuotationItem[]>([]);
+  const [viewMode, setViewMode] = useState<QuotationViewMode>('basico');
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    const savedCiudad = localStorage.getItem('simp_q_ciudad') || '';
+    const savedClinica = localStorage.getItem('simp_q_clinica') || '';
+    const savedCliente = localStorage.getItem('simp_q_cliente') || '';
+    const savedFecha = localStorage.getItem('simp_q_fecha') || obtenerFechaActual();
+    const savedComentarios = localStorage.getItem('simp_q_comentarios') || '';
+    const savedBeneficioPlus = localStorage.getItem('simp_q_beneficioPlus') === 'true';
+    const savedViewMode = (localStorage.getItem('simp_q_viewMode') as QuotationViewMode) || 'basico';
+    let savedItems: QuotationItem[] = [];
+    try {
+      const raw = localStorage.getItem('simp_q_items');
+      if (raw) savedItems = JSON.parse(raw);
+    } catch { /* ignore */ }
+
+    setCiudadSeleccionada(savedCiudad);
+    setClinicaSeleccionada(savedClinica);
+    setClienteNombre(savedCliente);
+    setFecha(savedFecha);
+    setComentarios(savedComentarios);
+    setBeneficioPlusState(savedBeneficioPlus);
+    setViewMode(savedViewMode);
+    setItems(savedItems);
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem('simp_q_ciudad', ciudadSeleccionada);
-  }, [ciudadSeleccionada]);
+  }, [ciudadSeleccionada, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem('simp_q_clinica', clinicaSeleccionada);
-  }, [clinicaSeleccionada]);
+  }, [clinicaSeleccionada, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem('simp_q_cliente', clienteNombre);
-  }, [clienteNombre]);
+  }, [clienteNombre, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem('simp_q_fecha', fecha);
-  }, [fecha]);
+  }, [fecha, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem('simp_q_comentarios', comentarios);
-  }, [comentarios]);
+  }, [comentarios, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    localStorage.setItem('simp_q_beneficioPlus', String(beneficioPlus));
+  }, [beneficioPlus, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem('simp_q_items', JSON.stringify(items));
-  }, [items]);
+  }, [items, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
     localStorage.setItem('simp_q_viewMode', viewMode);
-  }, [viewMode]);
+  }, [viewMode, hydrated]);
 
   const ciudades = useMemo(() => {
     const ciudadSet = new Set(clinicas.filter(c => c.estado === 'activo').map(c => c.ciudad));
@@ -141,6 +145,10 @@ export function QuotationProvider({ children }: { children: ReactNode }) {
 
   const setClinica = useCallback((clinica: string) => {
     setClinicaSeleccionada(clinica);
+  }, []);
+
+  const setBeneficioPlus = useCallback((valor: boolean) => {
+    setBeneficioPlusState(valor);
   }, []);
 
   const agregarItem = useCallback((servicioId: string) => {
@@ -191,6 +199,20 @@ export function QuotationProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const setQuimicasFields = useCallback((itemId: string, total: number, cubiertas: number) => {
+    setItems(prev => prev.map(item => {
+      if (item.id !== itemId) return item;
+      const clampedCubiertas = Math.min(cubiertas, total);
+      const actualizado = {
+        ...item,
+        tipoDescuento: 'EPP' as DiscountType,
+        totalQuimicas: total,
+        quimicasCubiertas: clampedCubiertas,
+      };
+      return recalcularItem(actualizado);
+    }));
+  }, []);
+
   const toggleViewMode = useCallback(() => {
     setViewMode(prev => prev === 'basico' ? 'detallado' : 'basico');
   }, []);
@@ -201,6 +223,7 @@ export function QuotationProvider({ children }: { children: ReactNode }) {
     setClienteNombre('');
     setFecha(obtenerFechaActual());
     setComentarios('');
+    setBeneficioPlusState(false);
     setItems([]);
     setViewMode('basico');
     localStorage.removeItem('simp_q_ciudad');
@@ -208,6 +231,7 @@ export function QuotationProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('simp_q_cliente');
     localStorage.removeItem('simp_q_fecha');
     localStorage.removeItem('simp_q_comentarios');
+    localStorage.removeItem('simp_q_beneficioPlus');
     localStorage.removeItem('simp_q_items');
     localStorage.removeItem('simp_q_viewMode');
   }, []);
@@ -266,11 +290,14 @@ export function QuotationProvider({ children }: { children: ReactNode }) {
       setFecha,
       comentarios,
       setComentarios,
+      beneficioPlus,
+      setBeneficioPlus,
       items,
       agregarItem,
       eliminarItem,
       setCantidad,
       setTipoDescuento,
+      setQuimicasFields,
       viewMode,
       toggleViewMode,
       totalSinDescuento: totals.totalSinDescuento,

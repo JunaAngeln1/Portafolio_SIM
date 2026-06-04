@@ -13,6 +13,7 @@ export default function QuotationSummary() {
   const getDiscountLabel = (tipo: string, porcentaje: number) => {
     if (tipo === 'SIM') return 'SIM';
     if (tipo === 'PERSONALIZADO') return `${porcentaje}%`;
+    if (tipo === 'EPP') return 'Plus';
     return '';
   };
 
@@ -52,13 +53,22 @@ export default function QuotationSummary() {
                   const desc = getDiscountLabel(item.tipoDescuento, item.porcentajeDescuento);
                   return (
                     <div key={item.id} className="grid grid-cols-12 gap-2 items-center px-2 py-2">
-                      <div className="col-span-6 text-sm text-gray-800 truncate">{item.servicio.nombre}</div>
+                      <div className="col-span-6 text-sm text-gray-800 truncate">
+                        {item.servicio.nombre}
+                        {item.tipoDescuento === 'EPP' && (
+                          <span className="ml-1.5 inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 align-middle">
+                            Plus
+                          </span>
+                        )}
+                      </div>
                       <div className="col-span-3 text-center">
                         {desc && (
                           <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                            item.tipoDescuento === 'SIM'
+                            item.tipoDescuento === 'EPP'
                               ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-amber-100 text-amber-700'
+                              : item.tipoDescuento === 'SIM'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-amber-100 text-amber-700'
                           }`}>
                             {desc}
                           </span>

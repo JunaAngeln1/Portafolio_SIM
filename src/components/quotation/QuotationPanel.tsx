@@ -4,7 +4,7 @@ import React from 'react';
 import { useQuotation } from '@/lib/quotationStore';
 import { useApp } from '@/lib/store';
 import QuotationItemRow from './QuotationItemRow';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Sparkles } from 'lucide-react';
 
 export default function QuotationPanel() {
   const {
@@ -13,6 +13,7 @@ export default function QuotationPanel() {
     clienteNombre, setClienteNombre,
     fecha, setFecha,
     comentarios, setComentarios,
+    beneficioPlus, setBeneficioPlus,
     items, limpiarCotizacion,
   } = useQuotation();
   const { clinicas } = useApp();
@@ -69,6 +70,17 @@ export default function QuotationPanel() {
             className="px-3 py-1.5 border border-border rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
           />
         </div>
+        <button
+          onClick={() => setBeneficioPlus(!beneficioPlus)}
+          className={`w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+            beneficioPlus
+              ? 'bg-emerald-500 text-white shadow-sm'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          Beneficio Plus
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { VeterinaryClinic, Service, FilterState, ImportData, StoredData } from './types';
 import { mockClinics, mockServices } from './data';
 import { supabase } from './supabase';
@@ -56,13 +56,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sidebarAbierto, setSidebarAbierto] = useState(true);
   const [datosCargados, setDatosCargados] = useState(false);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
-  const subscriptionsCleanupRef = useRef<(() => void) | null>(null);
-
   useEffect(() => {
-    // Si ya hay suscripciones activas, limpiarlas primero
-    if (subscriptionsCleanupRef.current) {
-      subscriptionsCleanupRef.current();
-    }
+    // Remover todos los canales existentes primero (síncrono)
+    supabase.removeAllChannels();
 
     let cancelled = false;
 
@@ -95,11 +91,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadInitialData();
 
     // Suscribirse a cambios en tiempo real
-    const channelNameClinics = `clinicas-${Date.now()}`;
-    const channelNameServices = `servicios-${Date.now()}`;
-
     const clinicsSubscription = supabase
-      .channel(channelNameClinics)
+      .channel('clinicas-realtime')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'clinics' }, 
         payload => {
@@ -120,7 +113,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .subscribe();
 
     const servicesSubscription = supabase
-      .channel(channelNameServices)
+      .channel('servicios-realtime')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'services' }, 
         payload => {
@@ -140,19 +133,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
-    // Guardar función de limpieza
-    subscriptionsCleanupRef.current = () => {
-      supabase.removeChannel(clinicsSubscription);
-      supabase.removeChannel(servicesSubscription);
-    };
-
-    // Limpiar suscripciones al desmontar
     return () => {
       cancelled = true;
-      if (subscriptionsCleanupRef.current) {
-        subscriptionsCleanupRef.current();
-        subscriptionsCleanupRef.current = null;
-      }
+      supabase.removeChannel(clinicsSubscription);
+      supabase.removeChannel(servicesSubscription);
     };
   }, []);
 
