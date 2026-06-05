@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, FolderOpen, FileText, Building2, Settings, PawPrint, ChevronLeft, ChevronRight } from 'lucide-react';

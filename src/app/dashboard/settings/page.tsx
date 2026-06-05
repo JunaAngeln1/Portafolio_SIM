@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { Settings, Bell, Shield, Database, Palette } from 'lucide-react';
 

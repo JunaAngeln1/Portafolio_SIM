@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useApp } from '@/lib/store';
 import { ImportData } from '@/lib/types';
 import { X, Upload, FileJson, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';

@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { useQuotation } from '@/lib/quotationStore';
 import { useApp } from '@/lib/store';
 import QuotationItemRow from './QuotationItemRow';

@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import { ElementType } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useApp } from '@/lib/store';
 import { Building2, FolderOpen, Activity, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 function StatCard({ icon: Icon, titulo, valor, subtitulo, color }: { 
-  icon: React.ElementType; 
+  icon: ElementType; 
   titulo: string; 
   valor: string | number;
   subtitulo: string;

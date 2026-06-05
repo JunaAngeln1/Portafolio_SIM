@@ -1,8 +1,7 @@
 'use client';
 
-import React from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, ArrowRight, PawPrint, FolderOpen, Building2, FileText, Sparkles } from 'lucide-react';
+import { CheckCircle2, ArrowRight, PawPrint, Sparkles } from 'lucide-react';
 
 export default function WelcomePage() {
   const router = useRouter();

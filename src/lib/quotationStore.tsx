@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import { QuotationItem, Quotation, QuotationViewMode, DiscountType } from './quotationTypes';
 import { useApp } from './store';
 import { crearItemDesdeServicio, recalcularItem, recalcularTotales, generarTextoBasico, generarTextoDetallado } from './discountService';

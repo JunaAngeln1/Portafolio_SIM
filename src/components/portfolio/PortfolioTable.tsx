@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { categories, serviceModes } from '@/lib/data';
 import CategoryBadge from './CategoryBadge';
 import ServiceModal from './ServiceModal';
 import { Service } from '@/lib/types';
-import { Search, Plus, Copy, ToggleLeft, ToggleRight, Trash2, X, Download, Upload, FileJson } from 'lucide-react';
+import { formatearPrecio } from '@/lib/format';
+import { Search, Plus, Copy, ToggleLeft, ToggleRight, Trash2, X, Download, Upload } from 'lucide-react';
 
 const statusColors = {
   activo: 'bg-emerald-100 text-emerald-700',
@@ -45,10 +46,6 @@ export default function PortfolioTable() {
   const serviciosFiltrados = obtenerServiciosFiltrados();
   const ciudades = obtenerCiudades();
   const proveedores = obtenerProveedores();
-
-  const formatearPrecio = (precio: number) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP' }).format(precio);
-  };
 
   const handleSaveServicio = (data: Partial<Service>) => {
     if (servicioEditando) {

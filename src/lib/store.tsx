@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { VeterinaryClinic, Service, FilterState, ImportData, StoredData } from './types';
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { VeterinaryClinic, Service, FilterState, ImportData } from './types';
 import { mockClinics, mockServices } from './data';
 import { supabase } from './supabase';
 import { normalizeClinic, normalizeService } from './normalizers';
@@ -79,7 +79,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           setDatosCargados(true);
         }
       } catch (error) {
-        console.error('Error loading initial data:', error);
         if (!cancelled) {
           setClinicas(mockClinics);
           setServicios(mockServices);
@@ -265,7 +264,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       return { clinicasImportadas: clinicasCount, serviciosImportados: serviciosCount };
     } catch (error) {
-      console.error('Error importing data:', error);
       throw error;
     }
   }, []);
@@ -277,7 +275,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await supabase.from('clinics').delete().neq('id', '');  // Eliminar todas las clínicas
       // No actualizamos estado local - las suscripciones se encargarán
     } catch (error) {
-      console.error('Error clearing all data:', error);
       throw error;
     }
   }, []);

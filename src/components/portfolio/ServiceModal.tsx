@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Service, ServiceCategory, ServiceMode } from '@/lib/types';
 import { categories, serviceModes } from '@/lib/data';
 import { X } from 'lucide-react';

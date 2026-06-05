@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
 import { QuotationItem } from '@/lib/quotationTypes';
 import { useQuotation } from '@/lib/quotationStore';
 import CategoryBadge from '@/components/portfolio/CategoryBadge';
 import { Trash2, Minus, Plus } from 'lucide-react';
+import { formatearPrecio } from '@/lib/format';
 
 interface QuotationItemRowProps {
   item: QuotationItem;
@@ -12,10 +12,6 @@ interface QuotationItemRowProps {
 
 export default function QuotationItemRow({ item }: QuotationItemRowProps) {
   const { beneficioPlus, eliminarItem, setCantidad, setTipoDescuento, setQuimicasFields } = useQuotation();
-
-  const formatearPrecio = (precio: number) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(precio);
-  };
 
   const handleTogglePersonalizado = () => {
     if (item.tipoDescuento === 'PERSONALIZADO') {

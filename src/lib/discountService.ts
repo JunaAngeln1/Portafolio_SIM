@@ -1,4 +1,5 @@
 import { QuotationItem, Quotation, QuotationTotals } from './quotationTypes';
+import { formatearPrecio } from './format';
 
 export function calcularDescuentoEPP(precioRegular: number, totalQuimicas: number, quimicasCubiertas: number): number {
   if (totalQuimicas <= 0 || quimicasCubiertas <= 0) return 0;
@@ -92,11 +93,11 @@ export function generarTextoBasico(q: Quotation): string {
   lineas.push('Servicios:');
 
   q.items.forEach((item, i) => {
-    const precioReg = formatearMoneda(item.precioRegular);
-    const subtotal = formatearMoneda(item.precioFinal);
+    const precioReg = formatearPrecio(item.precioRegular);
+    const subtotal = formatearPrecio(item.precioFinal);
     const cantStr = item.cantidad > 1 ? ` ×${item.cantidad}` : '';
     if (item.valorDescuento > 0) {
-      const ahorro = formatearMoneda(item.valorDescuento);
+      const ahorro = formatearPrecio(item.valorDescuento);
       const eppStr = item.tipoDescuento === 'EPP' ? ' [Plus]' : '';
       lineas.push(`${i + 1}. ${item.servicio.nombre}${eppStr}${cantStr} ... ${precioReg} → ${subtotal} (Ahorro: ${ahorro})`);
     } else {
@@ -105,10 +106,10 @@ export function generarTextoBasico(q: Quotation): string {
   });
 
   lineas.push('');
-  lineas.push(`Total a pagar: ${formatearMoneda(q.totalFinal)}`);
+  lineas.push(`Total a pagar: ${formatearPrecio(q.totalFinal)}`);
 
   if (q.totalDescuentos > 0) {
-    lineas.push(`Ahorro total: ${formatearMoneda(q.totalDescuentos)} ✓`);
+    lineas.push(`Ahorro total: ${formatearPrecio(q.totalDescuentos)} ✓`);
   }
 
   if (q.comentarios) {
@@ -147,9 +148,9 @@ export function generarTextoDetallado(q: Quotation): string {
     lineas.push(`   Veterinaria: ${item.servicio.proveedor}`);
     lineas.push(`   Ciudad: ${item.servicio.ciudad}`);
     lineas.push('');
-    lineas.push(`   Precio unitario: ${formatearMoneda(item.precioRegular)}`);
+    lineas.push(`   Precio unitario: ${formatearPrecio(item.precioRegular)}`);
     lineas.push(`   Cantidad: ${item.cantidad}`);
-    lineas.push(`   Subtotal: ${formatearMoneda(item.precioRegular * item.cantidad)}`);
+    lineas.push(`   Subtotal: ${formatearPrecio(item.precioRegular * item.cantidad)}`);
     lineas.push(`   Tipo descuento: ${discountTypeLabels[item.tipoDescuento] || 'Ninguno'}`);
 
     if (item.tipoDescuento === 'PERSONALIZADO') {
@@ -158,29 +159,29 @@ export function generarTextoDetallado(q: Quotation): string {
     if (item.tipoDescuento === 'EPP') {
       lineas.push(`   Total químicas: ${item.totalQuimicas}`);
       lineas.push(`   Químicas cubiertas: ${item.quimicasCubiertas}`);
-      lineas.push(`   Descuento EPP: -${formatearMoneda(item.descuentoEPP)}`);
+      lineas.push(`   Descuento EPP: -${formatearPrecio(item.descuentoEPP)}`);
     }
     if (item.precioSim) {
-      lineas.push(`   Precio SIM unitario: ${formatearMoneda(item.precioSim)}`);
+      lineas.push(`   Precio SIM unitario: ${formatearPrecio(item.precioSim)}`);
     }
     if (item.valorDescuento > 0) {
-      lineas.push(`   Descuento total: -${formatearMoneda(item.valorDescuento)}`);
+      lineas.push(`   Descuento total: -${formatearPrecio(item.valorDescuento)}`);
     } else {
       lineas.push(`   Sin descuento aplicado`);
     }
-    lineas.push(`   ► Precio final: ${formatearMoneda(item.precioFinal)}`);
+    lineas.push(`   ► Precio final: ${formatearPrecio(item.precioFinal)}`);
   });
 
   lineas.push('');
   lineas.push('───────────────────────────────');
   lineas.push('RESUMEN');
   lineas.push('───────────────────────────────');
-  lineas.push(`Subtotal:          ${formatearMoneda(q.totalSinDescuento)}`);
-  lineas.push(`Descuentos:        -${formatearMoneda(q.totalDescuentos)}`);
-  lineas.push(`TOTAL A PAGAR:     ${formatearMoneda(q.totalFinal)}`);
+  lineas.push(`Subtotal:          ${formatearPrecio(q.totalSinDescuento)}`);
+  lineas.push(`Descuentos:        -${formatearPrecio(q.totalDescuentos)}`);
+  lineas.push(`TOTAL A PAGAR:     ${formatearPrecio(q.totalFinal)}`);
 
   if (q.totalDescuentos > 0) {
-    lineas.push(`Ahorro total:      ${formatearMoneda(q.totalDescuentos)}`);
+    lineas.push(`Ahorro total:      ${formatearPrecio(q.totalDescuentos)}`);
   }
 
   if (q.comentarios) {
@@ -205,22 +206,20 @@ export function generarMensajeResumen(q: Quotation): string {
   lineas.push('');
 
   q.items.forEach((item, i) => {
-    const precioReg = formatearMoneda(item.precioRegular);
-    const precioFin = formatearMoneda(item.precioFinal);
+    const precioReg = formatearPrecio(item.precioRegular);
+    const precioFin = formatearPrecio(item.precioFinal);
     const cantStr = item.cantidad > 1 ? ` ×${item.cantidad}` : '';
     lineas.push(`${i + 1}. ${item.servicio.nombre}${cantStr} — ${precioReg} → ${precioFin}`);
   });
 
   lineas.push('');
-  lineas.push(`Total: ${formatearMoneda(q.totalFinal)}`);
+  lineas.push(`Total: ${formatearPrecio(q.totalFinal)}`);
 
   if (q.totalDescuentos > 0) {
-    lineas.push(`Ahorro: ${formatearMoneda(q.totalDescuentos)}`);
+    lineas.push(`Ahorro: ${formatearPrecio(q.totalDescuentos)}`);
   }
 
   return lineas.join('\n');
 }
 
-function formatearMoneda(valor: number): string {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(valor);
-}
+

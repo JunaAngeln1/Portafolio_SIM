@@ -1,14 +1,10 @@
 'use client';
 
-import React from 'react';
 import { useQuotation } from '@/lib/quotationStore';
+import { formatearPrecio } from '@/lib/format';
 
 export default function QuotationSummary() {
   const { clinicaNombre, clienteNombre, items, totalSinDescuento, totalDescuentos, totalFinal } = useQuotation();
-
-  const formatearPrecio = (precio: number) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(precio);
-  };
 
   const getDiscountLabel = (tipo: string, porcentaje: number) => {
     if (tipo === 'SIM') return 'SIM';

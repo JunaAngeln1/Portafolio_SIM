@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import { ReactNode } from 'react';
 import { AppProvider } from '@/lib/store';
 import { QuotationProvider } from '@/lib/quotationStore';
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+export default function Providers({ children }: { children: ReactNode }) {
   return (
     <AppProvider>
       <QuotationProvider>

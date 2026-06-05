@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { Bell, Menu, User, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 interface TopBarProps {

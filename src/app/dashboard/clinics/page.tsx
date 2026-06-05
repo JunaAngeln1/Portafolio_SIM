@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useApp } from '@/lib/store';
 import { VeterinaryClinic } from '@/lib/types';

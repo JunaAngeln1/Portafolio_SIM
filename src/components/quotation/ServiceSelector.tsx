@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp } from '@/lib/store';
 import { useQuotation } from '@/lib/quotationStore';
 import CategoryBadge from '@/components/portfolio/CategoryBadge';
 import { Search, Plus, Check, Building2, MapPin } from 'lucide-react';
+import { formatearPrecio } from '@/lib/format';
 
 const categoryFilters = [
   { value: 'TODAS', label: 'Todas' },
@@ -56,10 +57,6 @@ export default function ServiceSelector() {
   const itemsAgregados = useMemo(() => {
     return new Set(items.map(i => i.servicioId));
   }, [items]);
-
-  const formatearPrecio = (precio: number) => {
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(precio);
-  };
 
   return (
     <div className="bg-white rounded-2xl shadow-card overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 120px)' }}>

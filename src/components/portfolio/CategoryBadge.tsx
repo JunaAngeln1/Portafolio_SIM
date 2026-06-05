@@ -1,7 +1,5 @@
 'use client';
 
-import React from 'react';
-
 const categoryColors: Record<string, string> = {
   CONSULTA: 'bg-blue-100 text-blue-700',
   CIRUGIA: 'bg-pink-100 text-pink-700',
