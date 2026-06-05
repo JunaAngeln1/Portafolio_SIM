@@ -62,8 +62,8 @@ export default function ServiceSelector() {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-card overflow-hidden">
-      <div className="p-3 border-b border-border space-y-2">
+    <div className="bg-white rounded-2xl shadow-card overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 120px)' }}>
+      <div className="p-3 border-b border-border space-y-2 flex-shrink-0">
         <select
           value={ciudadSeleccionada}
           onChange={(e) => {
@@ -118,7 +118,7 @@ export default function ServiceSelector() {
         </div>
       </div>
 
-      <div className="max-h-[calc(100vh-380px)] overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         {!ciudadSeleccionada ? (
           <div className="p-6 text-center">
             <MapPin className="w-8 h-8 text-gray-300 mx-auto mb-2" />

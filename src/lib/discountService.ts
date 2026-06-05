@@ -197,6 +197,30 @@ export function generarTextoDetallado(q: Quotation): string {
   return lineas.join('\n');
 }
 
+export function generarMensajeResumen(q: Quotation): string {
+  const lineas: string[] = [];
+  lineas.push(`Cotización - ${q.fecha}`);
+  if (q.clinicaNombre) lineas.push(`Veterinaria: ${q.clinicaNombre}`);
+  if (q.clienteNombre) lineas.push(`Titular: ${q.clienteNombre}`);
+  lineas.push('');
+
+  q.items.forEach((item, i) => {
+    const precioReg = formatearMoneda(item.precioRegular);
+    const precioFin = formatearMoneda(item.precioFinal);
+    const cantStr = item.cantidad > 1 ? ` ×${item.cantidad}` : '';
+    lineas.push(`${i + 1}. ${item.servicio.nombre}${cantStr} — ${precioReg} → ${precioFin}`);
+  });
+
+  lineas.push('');
+  lineas.push(`Total: ${formatearMoneda(q.totalFinal)}`);
+
+  if (q.totalDescuentos > 0) {
+    lineas.push(`Ahorro: ${formatearMoneda(q.totalDescuentos)}`);
+  }
+
+  return lineas.join('\n');
+}
+
 function formatearMoneda(valor: number): string {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(valor);
 }
