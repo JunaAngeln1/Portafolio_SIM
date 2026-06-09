@@ -1,5 +1,3 @@
-import { ServiceCategory } from './types';
-
 export type DiscountType = 'SIM' | 'NINGUNO' | 'PERSONALIZADO' | 'EPP';
 
 export type QuotationViewMode = 'basico' | 'detallado';

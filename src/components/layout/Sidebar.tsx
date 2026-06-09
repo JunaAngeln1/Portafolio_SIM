@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, FolderOpen, FileText, Building2, Settings, PawPrint, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '@/lib/store';
+import { APP_VERSION } from '@/lib/constants';
 
 const menuItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Panel Principal' },
@@ -65,7 +66,7 @@ export default function Sidebar() {
         {sidebarAbierto && (
           <div className="bg-white/10 rounded-xl p-4 mb-3">
             <p className="text-white/60 text-xs mb-1">Versión</p>
-            <p className="text-white font-semibold">Fase 1 - 2026</p>
+            <p className="text-white font-semibold">{APP_VERSION}</p>
           </div>
         )}
         <button

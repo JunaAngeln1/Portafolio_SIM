@@ -2,17 +2,14 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
+import { useAuth } from '@/components/AuthProvider';
 import { categories, serviceModes } from '@/lib/data';
 import CategoryBadge from './CategoryBadge';
 import ServiceModal from './ServiceModal';
 import { Service } from '@/lib/types';
 import { formatearPrecio } from '@/lib/format';
-import { Search, Plus, Copy, ToggleLeft, ToggleRight, Trash2, X, Download, Upload } from 'lucide-react';
-
-const statusColors = {
-  activo: 'bg-emerald-100 text-emerald-700',
-  inactivo: 'bg-gray-100 text-gray-600',
-};
+import { Search, Plus, Copy, ToggleLeft, ToggleRight, Trash2, X, Download } from 'lucide-react';
+import { statusColors } from '@/lib/constants';
 
 const modeLabels: Record<string, string> = {
   EN_SEDE: 'En Sede',
@@ -37,6 +34,9 @@ export default function PortfolioTable() {
     obtenerProveedores,
     importarDatos,
   } = useApp();
+  
+  const { role } = useAuth();
+  const isAdmin = role === 'admin';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [servicioEditando, setServicioEditando] = useState<Service | null>(null);
@@ -210,13 +210,15 @@ export default function PortfolioTable() {
             <Download className="w-4 h-4" />
             Exportar
           </button>
-          <button
-            onClick={() => { setServicioEditando(null); setIsModalOpen(true); }}
-            className="px-4 py-2 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark flex items-center gap-2 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Agregar Servicio
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => { setServicioEditando(null); setIsModalOpen(true); }}
+              className="px-4 py-2 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark flex items-center gap-2 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Agregar Servicio
+            </button>
+          )}
         </div>
       </div>
 
@@ -300,42 +302,46 @@ export default function PortfolioTable() {
                     </td>
                     <td className="px-6 py-4 text-gray-500 text-sm">{servicio.fechaActualizacion}</td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => { setServicioEditando(servicio); setIsModalOpen(true); }}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Editar"
-                        >
-                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </button>
-                        <button 
-                          onClick={() => duplicarServicio(servicio.id)}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          title="Duplicar"
-                        >
-                          <Copy className="w-4 h-4 text-gray-500" />
-                        </button>
-                        <button 
-                          onClick={() => actualizarServicio(servicio.id, { estado: servicio.estado === 'activo' ? 'inactivo' : 'activo' })}
-                          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                          title={servicio.estado === 'activo' ? 'Desactivar' : 'Activar'}
-                        >
-                          {servicio.estado === 'activo' ? (
-                            <ToggleRight className="w-4 h-4 text-emerald-500" />
-                          ) : (
-                            <ToggleLeft className="w-4 h-4 text-gray-400" />
-                          )}
-                        </button>
-                        <button 
-                          onClick={() => setConfirmDelete(servicio.id)}
-                          className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </button>
-                      </div>
+                      {isAdmin ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => { setServicioEditando(servicio); setIsModalOpen(true); }}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Editar"
+                          >
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button 
+                            onClick={() => duplicarServicio(servicio.id)}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="Duplicar"
+                          >
+                            <Copy className="w-4 h-4 text-gray-500" />
+                          </button>
+                          <button 
+                            onClick={() => actualizarServicio(servicio.id, { estado: servicio.estado === 'activo' ? 'inactivo' : 'activo' })}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title={servicio.estado === 'activo' ? 'Desactivar' : 'Activar'}
+                          >
+                            {servicio.estado === 'activo' ? (
+                              <ToggleRight className="w-4 h-4 text-emerald-500" />
+                            ) : (
+                              <ToggleLeft className="w-4 h-4 text-gray-400" />
+                            )}
+                          </button>
+                          <button 
+                            onClick={() => setConfirmDelete(servicio.id)}
+                            className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">Solo lectura</span>
+                      )}
                     </td>
                   </tr>
                 ))

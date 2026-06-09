@@ -13,11 +13,15 @@ interface QuotationItemRowProps {
 export default function QuotationItemRow({ item }: QuotationItemRowProps) {
   const { beneficioPlus, eliminarItem, setCantidad, setTipoDescuento, setQuimicasFields } = useQuotation();
 
+  const DEFAULT_DISCOUNT_PERCENT = 10;
+  const MAX_QUIMICAS = 99;
+  const MAX_CANTIDAD = 999;
+
   const handleTogglePersonalizado = () => {
     if (item.tipoDescuento === 'PERSONALIZADO') {
       setTipoDescuento(item.id, 'SIM');
     } else {
-      setTipoDescuento(item.id, 'PERSONALIZADO', 10);
+      setTipoDescuento(item.id, 'PERSONALIZADO', DEFAULT_DISCOUNT_PERCENT);
     }
   };
 
@@ -27,7 +31,7 @@ export default function QuotationItemRow({ item }: QuotationItemRowProps) {
   };
 
   const handleTotalQuimicasChange = (valor: number) => {
-    const total = Math.max(1, Math.min(99, valor));
+    const total = Math.max(1, Math.min(MAX_QUIMICAS, valor));
     setQuimicasFields(item.id, total, item.quimicasCubiertas);
   };
 
@@ -107,12 +111,12 @@ export default function QuotationItemRow({ item }: QuotationItemRowProps) {
             value={item.cantidad}
             onChange={(e) => setCantidad(item.id, Number(e.target.value))}
             min={1}
-            max={999}
+            max={MAX_CANTIDAD}
             className="w-8 px-0.5 py-0.5 text-center text-xs font-medium border-x border-border focus:ring-0 focus:border-primary outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
           <button
             onClick={() => setCantidad(item.id, item.cantidad + 1)}
-            disabled={item.cantidad >= 999}
+            disabled={item.cantidad >= MAX_CANTIDAD}
             className="p-1 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <Plus className="w-3 h-3 text-gray-600" />

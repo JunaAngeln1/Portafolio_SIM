@@ -1,16 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useApp } from '@/lib/store';
+import { useAuth } from '@/components/AuthProvider';
 import { VeterinaryClinic } from '@/lib/types';
 import { Plus, Edit, ToggleLeft, ToggleRight, Trash2, X, Building2, MapPin, Home, Upload } from 'lucide-react';
 import ImportModal from '@/components/import/ImportModal';
-
-const statusColors = {
-  activo: 'bg-emerald-100 text-emerald-700',
-  inactivo: 'bg-gray-100 text-gray-600',
-};
+import { statusColors } from '@/lib/constants';
 
 interface ClinicModalProps {
   isOpen: boolean;
@@ -20,6 +17,7 @@ interface ClinicModalProps {
 }
 
 function ClinicModal({ isOpen, onClose, onSave, clinica }: ClinicModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     nombre: clinica?.nombre || '',
     ciudad: clinica?.ciudad || '',
@@ -28,29 +26,42 @@ function ClinicModal({ isOpen, onClose, onSave, clinica }: ClinicModalProps) {
     estado: clinica?.estado || 'activo' as 'activo' | 'inactivo',
   });
 
+  useEffect(() => {
+    setFormData({
+      nombre: clinica?.nombre || '',
+      ciudad: clinica?.ciudad || '',
+      direccion: clinica?.direccion || '',
+      servicioDomicilio: clinica?.servicioDomicilio ?? true,
+      estado: clinica?.estado || 'activo',
+    });
+  }, [clinica]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     onSave(formData);
+    setTimeout(() => setIsSubmitting(false), 500);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="clinic-modal-title">
       <div className="bg-white rounded-2xl w-full max-w-md mx-4 shadow-modal">
         <div className="flex items-center justify-between p-6 border-b">
-          <h3 className="text-xl font-semibold text-gray-900">
+          <h3 id="clinic-modal-title" className="text-xl font-semibold text-gray-900">
             {clinica ? 'Editar Veterinaria' : 'Agregar Nueva Veterinaria'}
           </h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Cerrar">
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Nombre de la Veterinaria</label>
+            <label htmlFor="clinic-nombre" className="block text-sm font-medium text-gray-700 mb-2">Nombre de la Veterinaria</label>
             <input
+              id="clinic-nombre"
               type="text"
               value={formData.nombre}
               onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
@@ -60,8 +71,9 @@ function ClinicModal({ isOpen, onClose, onSave, clinica }: ClinicModalProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Ciudad</label>
+            <label htmlFor="clinic-ciudad" className="block text-sm font-medium text-gray-700 mb-2">Ciudad</label>
             <input
+              id="clinic-ciudad"
               type="text"
               value={formData.ciudad}
               onChange={(e) => setFormData({ ...formData, ciudad: e.target.value })}
@@ -71,8 +83,9 @@ function ClinicModal({ isOpen, onClose, onSave, clinica }: ClinicModalProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Dirección</label>
+            <label htmlFor="clinic-direccion" className="block text-sm font-medium text-gray-700 mb-2">Dirección</label>
             <input
+              id="clinic-direccion"
               type="text"
               value={formData.direccion}
               onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
@@ -83,6 +96,7 @@ function ClinicModal({ isOpen, onClose, onSave, clinica }: ClinicModalProps) {
           <div>
             <label className="flex items-center gap-3 cursor-pointer">
               <input
+                id="clinic-servicio-domicilio"
                 type="checkbox"
                 checked={formData.servicioDomicilio}
                 onChange={(e) => setFormData({ ...formData, servicioDomicilio: e.target.checked })}
@@ -117,9 +131,10 @@ function ClinicModal({ isOpen, onClose, onSave, clinica }: ClinicModalProps) {
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition-colors"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition-colors disabled:opacity-50"
             >
-              {clinica ? 'Guardar Cambios' : 'Agregar Veterinaria'}
+              {isSubmitting ? 'Guardando...' : clinica ? 'Guardar Cambios' : 'Agregar Veterinaria'}
             </button>
           </div>
         </form>
@@ -130,6 +145,8 @@ function ClinicModal({ isOpen, onClose, onSave, clinica }: ClinicModalProps) {
 
 export default function ClinicsPage() {
   const { clinicas, servicios, agregarClinica, actualizarClinica, eliminarClinica } = useApp();
+  const { role } = useAuth();
+  const isAdmin = role === 'admin';
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [clinicaEditando, setClinicaEditando] = useState<VeterinaryClinic | null>(null);
@@ -175,20 +192,24 @@ export default function ClinicsPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsImportOpen(true)}
-              className="px-4 py-2 border border-border rounded-xl text-gray-700 font-medium hover:bg-gray-50 flex items-center gap-2 transition-colors"
-            >
-              <Upload className="w-4 h-4" />
-              Importar JSON
-            </button>
-            <button
-              onClick={() => { setClinicaEditando(null); setIsModalOpen(true); }}
-              className="px-4 py-2 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark flex items-center gap-2 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Agregar Veterinaria
-            </button>
+            {isAdmin && (
+              <>
+                <button
+                  onClick={() => setIsImportOpen(true)}
+                  className="px-4 py-2 border border-border rounded-xl text-gray-700 font-medium hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                  Importar JSON
+                </button>
+                <button
+                  onClick={() => { setClinicaEditando(null); setIsModalOpen(true); }}
+                  className="px-4 py-2 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark flex items-center gap-2 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agregar Veterinaria
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -227,30 +248,34 @@ export default function ClinicsPage() {
                 <span className="text-sm text-gray-500">
                   {getServiceCount(clinica.id)} servicios
                 </span>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => { setClinicaEditando(clinica); setIsModalOpen(true); }}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <Edit className="w-4 h-4 text-gray-500" />
-                  </button>
-                  <button 
-                    onClick={() => actualizarClinica(clinica.id, { estado: clinica.estado === 'activo' ? 'inactivo' : 'activo' })}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    {clinica.estado === 'activo' ? (
-                      <ToggleRight className="w-4 h-4 text-emerald-500" />
-                    ) : (
-                      <ToggleLeft className="w-4 h-4 text-gray-400" />
-                    )}
-                  </button>
-                  <button 
-                    onClick={() => setConfirmDelete(clinica.id)}
-                    className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4 text-red-500" />
-                  </button>
-                </div>
+                {isAdmin ? (
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => { setClinicaEditando(clinica); setIsModalOpen(true); }}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <Edit className="w-4 h-4 text-gray-500" />
+                    </button>
+                    <button 
+                      onClick={() => actualizarClinica(clinica.id, { estado: clinica.estado === 'activo' ? 'inactivo' : 'activo' })}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      {clinica.estado === 'activo' ? (
+                        <ToggleRight className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <ToggleLeft className="w-4 h-4 text-gray-400" />
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => setConfirmDelete(clinica.id)}
+                      className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-sm text-gray-400">Solo lectura</span>
+                )}
               </div>
             </div>
           ))}

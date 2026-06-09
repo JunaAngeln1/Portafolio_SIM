@@ -23,7 +23,7 @@ export const categories: { value: ServiceCategory | 'TODAS'; label: string; colo
   { value: 'CONSULTA', label: 'Consulta', color: '#3B82F6' },
   { value: 'CIRUGIA', label: 'Cirugía', color: '#EC4899' },
   { value: 'LABORATORIO', label: 'Laboratorio', color: '#6B7280' },
-  { value: 'IMAGENES', label: 'Imágenes y Diagnóstico', color: '#8B5CF6' },
+  { value: 'IMAGENES', label: 'Imágenes', color: '#8B5CF6' },
   { value: 'VACUNAS', label: 'Vacunas', color: '#EAB308' },
   { value: 'PROCEDIMIENTOS', label: 'Procedimientos', color: '#F97316' },
 ];

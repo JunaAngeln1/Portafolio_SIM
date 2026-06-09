@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useApp } from '@/lib/store';
-import { ImportData } from '@/lib/types';
+import { validarImportData, validarTamanioArchivo } from '@/lib/importValidation';
 import { X, Upload, FileJson, CheckCircle2, AlertCircle, Trash2 } from 'lucide-react';
 
 interface ImportModalProps {
@@ -22,6 +22,12 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const tamanioError = validarTamanioArchivo(file);
+    if (tamanioError) {
+      setParseError(tamanioError);
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
@@ -40,8 +46,16 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
     if (!jsonContent) return;
     
     try {
-      const data: ImportData = JSON.parse(jsonContent);
-      const result = await importarDatos(data);
+      const parsed = JSON.parse(jsonContent);
+      const validation = validarImportData(parsed);
+      
+      if (!validation.valid) {
+        const primerError = validation.errors[0];
+        setParseError(`Error en ${primerError.field}: ${primerError.message}`);
+        return;
+      }
+
+      const result = await importarDatos(validation.data);
       setImportResult(result);
       setJsonContent('');
       setParseError(null);
@@ -58,7 +72,7 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
       <div className="bg-white rounded-2xl w-full max-w-2xl mx-4 shadow-modal max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-3">
@@ -66,11 +80,11 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
               <FileJson className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-gray-900">Importar Portafolios</h3>
+              <h3 id="import-modal-title" className="text-xl font-semibold text-gray-900">Importar Portafolios</h3>
               <p className="text-sm text-gray-500">Carga un archivo JSON con veterinarias y servicios</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Cerrar">
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
@@ -109,6 +123,10 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
             <div 
               className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click(); } }}
+              role="button"
+              tabIndex={0}
+              aria-label="Cargar archivo JSON"
             >
               <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 mb-1">Haz clic o arrastra un archivo JSON aquí</p>

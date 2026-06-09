@@ -58,6 +58,11 @@ export default function ServiceSelector() {
     return new Set(items.map(i => i.servicioId));
   }, [items]);
 
+  const clinicaMap = useMemo(() => {
+    const map = new Map(clinicas.map(c => [c.id, c]));
+    return map;
+  }, [clinicas]);
+
   return (
     <div className="bg-white rounded-2xl shadow-card overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 120px)' }}>
       <div className="p-3 border-b border-border space-y-2 flex-shrink-0">
@@ -129,7 +134,7 @@ export default function ServiceSelector() {
           <div className="divide-y divide-border">
             {serviciosFiltrados.map(servicio => {
               const agregado = itemsAgregados.has(servicio.id);
-              const clinica = clinicas.find(c => c.id === servicio.clinicaId);
+              const clinica = clinicaMap.get(servicio.clinicaId);
               return (
                 <div
                   key={servicio.id}

@@ -1,0 +1,17 @@
+-- ============================================
+-- SIM Platform - Seed Data
+-- ============================================
+-- IMPORTANTE: Los usuarios NO se crean desde SQL.
+-- Crear usuarios desde: Supabase Dashboard > Authentication > Users
+--
+-- Usuarios requeridos:
+--   Admin:  admin@sim.com  (rol: admin)
+--   General: user@sim.com  (rol: general)
+--
+-- Al crear cada usuario en Dashboard, agregar en "User Metadata":
+--   full_name: "Nombre del usuario"
+--   role: "admin" o "general"
+-- ============================================
+
+-- La tabla profiles se llena automáticamente via trigger on_auth_user_created
+-- No ejecutar inserts manuales en profiles.

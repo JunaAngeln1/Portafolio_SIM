@@ -1,3 +1,13 @@
+export type UserRole = 'admin' | 'general';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+  createdAt: string;
+}
+
 export type ServiceCategory = 
   | 'CONSULTA'
   | 'CIRUGIA'
@@ -43,10 +53,6 @@ export interface FilterState {
   modoServicio: string;
   estado: string;
   busqueda: string;
-  rangoFechas: {
-    desde: string;
-    hasta: string;
-  };
 }
 
 export interface ImportData {
@@ -66,8 +72,4 @@ export interface ImportData {
   }[];
 }
 
-export interface StoredData {
-  clinicas: VeterinaryClinic[];
-  servicios: Service[];
-  ultimaActualizacion: string;
-}
+

@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import Providers from '@/components/Providers';
+import ErrorBoundary from '@/components/ErrorBoundary';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'SIM Platform - Sistema Integral de Mascotas',
@@ -14,8 +21,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body>
-        <Providers>{children}</Providers>
+      <body className={inter.className}>
+        <ErrorBoundary>
+          <Providers>{children}</Providers>
+        </ErrorBoundary>
       </body>
     </html>
   );

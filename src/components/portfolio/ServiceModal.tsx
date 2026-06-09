@@ -14,6 +14,7 @@ interface ServiceModalProps {
 }
 
 export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinicas }: ServiceModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     categoria: 'CONSULTA' as ServiceCategory,
     nombre: '',
@@ -55,31 +56,34 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     onSave({
       ...formData,
       proveedor: clinicaSeleccionada?.nombre || '',
       ciudad: clinicaSeleccionada?.ciudad || '',
     });
+    setTimeout(() => setIsSubmitting(false), 500);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="service-modal-title">
       <div className="bg-white rounded-2xl w-full max-w-lg mx-4 shadow-modal max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
-          <h3 className="text-xl font-semibold text-gray-900">
+          <h3 id="service-modal-title" className="text-xl font-semibold text-gray-900">
             {servicio ? 'Editar Servicio' : 'Agregar Nuevo Servicio'}
           </h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" aria-label="Cerrar">
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
+            <label htmlFor="svc-categoria" className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
             <select
+              id="svc-categoria"
               value={formData.categoria}
               onChange={(e) => setFormData({ ...formData, categoria: e.target.value as ServiceCategory })}
               className="w-full px-4 py-2.5 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
@@ -91,8 +95,9 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Servicio</label>
+            <label htmlFor="svc-nombre" className="block text-sm font-medium text-gray-700 mb-2">Nombre del Servicio</label>
             <input
+              id="svc-nombre"
               type="text"
               value={formData.nombre}
               onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
@@ -102,8 +107,9 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+            <label htmlFor="svc-descripcion" className="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
             <textarea
+              id="svc-descripcion"
               value={formData.descripcion}
               onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
               className="w-full px-4 py-2.5 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none"
@@ -112,8 +118,9 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Precio Particular (COP)</label>
+            <label htmlFor="svc-precio" className="block text-sm font-medium text-gray-700 mb-2">Precio Particular (COP)</label>
             <input
+              id="svc-precio"
               type="number"
               value={formData.precio}
               onChange={(e) => setFormData({ ...formData, precio: Number(e.target.value) })}
@@ -123,8 +130,9 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Precio SIM (COP) <span className="text-gray-400 font-normal">— opcional</span></label>
+            <label htmlFor="svc-precio-sim" className="block text-sm font-medium text-gray-700 mb-2">Precio SIM (COP) <span className="text-gray-400 font-normal">— opcional</span></label>
             <input
+              id="svc-precio-sim"
               type="number"
               value={formData.precioDescuento ?? ''}
               onChange={(e) => setFormData({ ...formData, precioDescuento: e.target.value ? Number(e.target.value) : null })}
@@ -182,9 +190,10 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition-colors"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition-colors disabled:opacity-50"
             >
-              {servicio ? 'Guardar Cambios' : 'Agregar Servicio'}
+              {isSubmitting ? 'Guardando...' : servicio ? 'Guardar Cambios' : 'Agregar Servicio'}
             </button>
           </div>
         </form>

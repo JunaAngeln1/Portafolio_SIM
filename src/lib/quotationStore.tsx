@@ -45,6 +45,17 @@ function obtenerFechaActual(): string {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+const STORAGE_KEYS = {
+  ciudad: 'simp_q_ciudad',
+  clinica: 'simp_q_clinica',
+  cliente: 'simp_q_cliente',
+  fecha: 'simp_q_fecha',
+  comentarios: 'simp_q_comentarios',
+  beneficioPlus: 'simp_q_beneficioPlus',
+  items: 'simp_q_items',
+  viewMode: 'simp_q_viewMode',
+} as const;
+
 export function QuotationProvider({ children }: { children: ReactNode }) {
   const { clinicas, servicios } = useApp();
 
@@ -59,18 +70,23 @@ export function QuotationProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const savedCiudad = localStorage.getItem('simp_q_ciudad') || '';
-    const savedClinica = localStorage.getItem('simp_q_clinica') || '';
-    const savedCliente = localStorage.getItem('simp_q_cliente') || '';
-    const savedFecha = localStorage.getItem('simp_q_fecha') || obtenerFechaActual();
-    const savedComentarios = localStorage.getItem('simp_q_comentarios') || '';
-    const savedBeneficioPlus = localStorage.getItem('simp_q_beneficioPlus') === 'true';
-    const savedViewMode = (localStorage.getItem('simp_q_viewMode') as QuotationViewMode) || 'basico';
+    const savedCiudad = localStorage.getItem(STORAGE_KEYS.ciudad) || '';
+    const savedClinica = localStorage.getItem(STORAGE_KEYS.clinica) || '';
+    const savedCliente = localStorage.getItem(STORAGE_KEYS.cliente) || '';
+    const savedFecha = localStorage.getItem(STORAGE_KEYS.fecha) || obtenerFechaActual();
+    const savedComentarios = localStorage.getItem(STORAGE_KEYS.comentarios) || '';
+    const savedBeneficioPlus = localStorage.getItem(STORAGE_KEYS.beneficioPlus) === 'true';
+    const savedViewModeRaw = localStorage.getItem(STORAGE_KEYS.viewMode);
+    const validViewModes: QuotationViewMode[] = ['basico', 'detallado'];
+    const savedViewMode = validViewModes.includes(savedViewModeRaw as QuotationViewMode) ? (savedViewModeRaw as QuotationViewMode) : 'basico';
     let savedItems: QuotationItem[] = [];
     try {
-      const raw = localStorage.getItem('simp_q_items');
-      if (raw) savedItems = JSON.parse(raw);
-    } catch { /* ignore */ }
+      const raw = localStorage.getItem(STORAGE_KEYS.items);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) savedItems = parsed;
+      }
+    } catch { /* ignore corrupted data */ }
 
     setCiudadSeleccionada(savedCiudad);
     setClinicaSeleccionada(savedClinica);
@@ -85,14 +101,17 @@ export function QuotationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem('simp_q_ciudad', ciudadSeleccionada);
-    localStorage.setItem('simp_q_clinica', clinicaSeleccionada);
-    localStorage.setItem('simp_q_cliente', clienteNombre);
-    localStorage.setItem('simp_q_fecha', fecha);
-    localStorage.setItem('simp_q_comentarios', comentarios);
-    localStorage.setItem('simp_q_beneficioPlus', String(beneficioPlus));
-    localStorage.setItem('simp_q_items', JSON.stringify(items));
-    localStorage.setItem('simp_q_viewMode', viewMode);
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEYS.ciudad, ciudadSeleccionada);
+      localStorage.setItem(STORAGE_KEYS.clinica, clinicaSeleccionada);
+      localStorage.setItem(STORAGE_KEYS.cliente, clienteNombre);
+      localStorage.setItem(STORAGE_KEYS.fecha, fecha);
+      localStorage.setItem(STORAGE_KEYS.comentarios, comentarios);
+      localStorage.setItem(STORAGE_KEYS.beneficioPlus, String(beneficioPlus));
+      localStorage.setItem(STORAGE_KEYS.items, JSON.stringify(items));
+      localStorage.setItem(STORAGE_KEYS.viewMode, viewMode);
+    }, 300);
+    return () => clearTimeout(timeoutId);
   }, [ciudadSeleccionada, clinicaSeleccionada, clienteNombre, fecha, comentarios, beneficioPlus, items, viewMode, hydrated]);
 
   const ciudades = useMemo(() => {
@@ -198,14 +217,14 @@ export function QuotationProvider({ children }: { children: ReactNode }) {
     setBeneficioPlusState(false);
     setItems([]);
     setViewMode('basico');
-    localStorage.removeItem('simp_q_ciudad');
-    localStorage.removeItem('simp_q_clinica');
-    localStorage.removeItem('simp_q_cliente');
-    localStorage.removeItem('simp_q_fecha');
-    localStorage.removeItem('simp_q_comentarios');
-    localStorage.removeItem('simp_q_beneficioPlus');
-    localStorage.removeItem('simp_q_items');
-    localStorage.removeItem('simp_q_viewMode');
+    localStorage.removeItem(STORAGE_KEYS.ciudad);
+    localStorage.removeItem(STORAGE_KEYS.clinica);
+    localStorage.removeItem(STORAGE_KEYS.cliente);
+    localStorage.removeItem(STORAGE_KEYS.fecha);
+    localStorage.removeItem(STORAGE_KEYS.comentarios);
+    localStorage.removeItem(STORAGE_KEYS.beneficioPlus);
+    localStorage.removeItem(STORAGE_KEYS.items);
+    localStorage.removeItem(STORAGE_KEYS.viewMode);
   }, []);
 
   const totals = useMemo(() => recalcularTotales(items), [items]);
@@ -216,7 +235,7 @@ export function QuotationProvider({ children }: { children: ReactNode }) {
   }, [clinicasEnCiudad, clinicaSeleccionada]);
 
   const quotation: Quotation = useMemo(() => ({
-    id: `qt_${Date.now()}`,
+    id: `qt_${crypto.randomUUID()}`,
     ciudad: ciudadSeleccionada,
     clinicaNombre,
     clienteNombre,

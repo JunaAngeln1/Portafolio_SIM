@@ -3,10 +3,42 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import { VeterinaryClinic, Service, FilterState, ImportData } from './types';
 import { mockClinics, mockServices } from './data';
-import { supabase } from './supabase';
 import { normalizeClinic, normalizeService } from './normalizers';
-import { agregarClinica as agregarClinicaService, actualizarClinica as actualizarClinicaService, eliminarClinica as eliminarClinicaService } from './clinicService';
-import { agregarServicio as agregarServicioService, actualizarServicio as actualizarServicioService, eliminarServicio as eliminarServicioService, duplicarServicio as duplicarServicioService } from './serviceService';
+import { getSupabaseBrowser } from './supabase-browser';
+// API-based CRUD functions for server-side auth
+async function apiPost<T>(url: string, body?: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Error de red' }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function apiPut<T>(url: string, body?: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Error de red' }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function apiDelete(url: string): Promise<void> {
+  const res = await fetch(url, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Error de red' }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+}
 
 interface AppState {
   clinicas: VeterinaryClinic[];
@@ -29,7 +61,7 @@ interface AppContextType extends AppState {
   eliminarServicio: (id: string) => void;
   duplicarServicio: (id: string) => void;
   importarDatos: (data: ImportData) => Promise<{ clinicasImportadas: number; serviciosImportados: number }>;
-  limpiarTodosLosDatos: () => void;
+  limpiarTodosLosDatos: () => Promise<void>;
   obtenerServiciosFiltrados: () => Service[];
   obtenerCiudades: () => string[];
   obtenerProveedores: () => string[];
@@ -44,12 +76,12 @@ const filtrosPorDefecto: FilterState = {
   modoServicio: 'TODOS',
   estado: 'TODOS',
   busqueda: '',
-  rangoFechas: { desde: '', hasta: '' },
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const supabase = getSupabaseBrowser();
   const [clinicas, setClinicas] = useState<VeterinaryClinic[]>([]);
   const [servicios, setServicios] = useState<Service[]>([]);
   const [filtros, setFiltrosState] = useState<FilterState>(filtrosPorDefecto);
@@ -86,39 +118,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     loadInitialData();
 
-    // Suscribirse a cambios en tiempo real
-    const clinicsSubscription = supabase
-      .channel('clinicas-realtime')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'clinics' }, 
-        payload => {
-          if (cancelled) return;
-          const normalizedClinic = normalizeClinic(payload.new);
+    // Deferred: subscribe to realtime changes after initial load
+    // This lazy-loads the realtime-js and phoenix packages (~1.1 MB)
+    const setupRealtime = async () => {
+      await new Promise(resolve => setTimeout(resolve, 0));
 
-          if (payload.eventType === 'INSERT') {
-            setClinicas(prev => [...prev, normalizedClinic]);
-          } else if (payload.eventType === 'UPDATE') {
-            setClinicas(prev => prev.map(c => 
-              c.id === normalizedClinic.id ? normalizedClinic : c
-            ));
-          } else if (payload.eventType === 'DELETE') {
-            setClinicas(prev => prev.filter(c => c.id !== payload.old.id));
+      if (cancelled) return;
+
+      const clinicsSubscription = supabase
+        .channel('clinicas-realtime')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'clinics' }, 
+          payload => {
+            if (cancelled) return;
+            const normalizedClinic = normalizeClinic(payload.new);
+
+            if (payload.eventType === 'INSERT') {
+              setClinicas(prev => [...prev, normalizedClinic]);
+            } else if (payload.eventType === 'UPDATE') {
+              setClinicas(prev => prev.map(c => 
+                c.id === normalizedClinic.id ? normalizedClinic : c
+              ));
+            } else if (payload.eventType === 'DELETE') {
+              setClinicas(prev => prev.filter(c => c.id !== payload.old.id));
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    const servicesSubscription = supabase
-      .channel('servicios-realtime')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'services' }, 
-        payload => {
-          if (cancelled) return;
-          const normalizedService = normalizeService(payload.new);
+      const servicesSubscription = supabase
+        .channel('servicios-realtime')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'services' }, 
+          payload => {
+            if (cancelled) return;
 
           if (payload.eventType === 'INSERT') {
+            const normalizedService = normalizeService(payload.new);
             setServicios(prev => [...prev, normalizedService]);
           } else if (payload.eventType === 'UPDATE') {
+            const normalizedService = normalizeService(payload.new);
             setServicios(prev => prev.map(s => 
               s.id === normalizedService.id ? normalizedService : s
             ));
@@ -129,12 +168,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
+      return { clinicsSubscription, servicesSubscription };
+    };
+
+    let cleanup: { clinicsSubscription: ReturnType<typeof supabase.channel>; servicesSubscription: ReturnType<typeof supabase.channel> } | null = null;
+
+    setupRealtime().then(result => {
+      if (!cancelled && result) {
+        cleanup = result;
+      }
+    });
+
     return () => {
       cancelled = true;
-      supabase.removeChannel(clinicsSubscription);
-      supabase.removeChannel(servicesSubscription);
+      if (cleanup) {
+        supabase.removeChannel(cleanup.clinicsSubscription);
+        supabase.removeChannel(cleanup.servicesSubscription);
+      }
     };
-  }, []);
+  }, [supabase]);
 
   // Funciones CRUD que operan directamente contra Supabase
   const setFiltros = useCallback((nuevosFiltros: Partial<FilterState>) => {
@@ -149,153 +201,87 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const agregarClinica = useCallback(async (clinica: VeterinaryClinic) => {
     try {
-      await agregarClinicaService(clinica);
-      // La suscripción realtime se encargará de actualizar el estado
+      await apiPost('/api/clinics', clinica);
     } catch (error) {
-      console.error('Error al agregar clínica:', error);
+      console.error('[STORE] Error al agregar clínica:', error);
       throw error;
     }
   }, []);
 
   const actualizarClinica = useCallback(async (id: string, actualizaciones: Partial<VeterinaryClinic>) => {
     try {
-      await actualizarClinicaService(id, actualizaciones);
-      // La suscripción realtime se encargará de actualizar el estado
+      await apiPut(`/api/clinics/${id}`, actualizaciones);
     } catch (error) {
-      console.error('Error al actualizar clínica:', error);
+      console.error('[STORE] Error al actualizar clínica:', error);
       throw error;
     }
   }, []);
 
   const eliminarClinica = useCallback(async (id: string) => {
     try {
-      await eliminarClinicaService(id);
-      // La suscripción realtime se encargará de actualizar el estado
+      await apiDelete(`/api/clinics/${id}`);
     } catch (error) {
-      console.error('Error al eliminar clínica:', error);
+      console.error('[STORE] Error al eliminar clínica:', error);
       throw error;
     }
   }, []);
 
   const agregarServicio = useCallback(async (servicio: Service) => {
     try {
-      await agregarServicioService(servicio);
-      // La suscripción realtime se encargará de actualizar el estado
+      await apiPost('/api/services', servicio);
     } catch (error) {
-      console.error('Error al agregar servicio:', error);
+      console.error('[STORE] Error al agregar servicio:', error);
       throw error;
     }
   }, []);
 
   const actualizarServicio = useCallback(async (id: string, actualizaciones: Partial<Service>) => {
     try {
-      await actualizarServicioService(id, actualizaciones);
-      // La suscripción realtime se encargará de actualizar el estado
+      await apiPut(`/api/services/${id}`, actualizaciones);
     } catch (error) {
-      console.error('Error al actualizar servicio:', error);
+      console.error('[STORE] Error al actualizar servicio:', error);
       throw error;
     }
   }, []);
 
   const eliminarServicio = useCallback(async (id: string) => {
     try {
-      await eliminarServicioService(id);
-      // La suscripción realtime se encargará de actualizar el estado
+      await apiDelete(`/api/services/${id}`);
     } catch (error) {
-      console.error('Error al eliminar servicio:', error);
+      console.error('[STORE] Error al eliminar servicio:', error);
       throw error;
     }
   }, []);
 
   const duplicarServicio = useCallback(async (id: string) => {
     try {
-      await duplicarServicioService(id);
-      // La suscripción realtime se encargará de agregar el nuevo servicio al estado
+      await apiPost(`/api/services/${id}/duplicate`);
     } catch (error) {
-      console.error('Error al duplicar servicio:', error);
+      console.error('[STORE] Error al duplicar servicio:', error);
       throw error;
     }
   }, []);
 
   const importarDatos = useCallback(async (data: ImportData): Promise<{ clinicasImportadas: number; serviciosImportados: number }> => {
-    let clinicasCount = 0;
-    let serviciosCount = 0;
-
     try {
-      for (const vet of data.veterinarias) {
-        const fechaActual = new Date().toISOString().split('T')[0];
-
-        // Insertamos la clínica
-        const clinicaData = {
-          nombre: vet.nombre,
-          ciudad: vet.ciudad,
-          direccion: vet.direccion || '',
-          servicio_domicilio: vet.servicio_domicilio ?? true,
-          estado: 'activo',
-          fecha_creacion: fechaActual,
-          fecha_actualizacion: fechaActual,
-        };
-
-        const { data: clinicaResult, error: clinicaError } = await supabase
-          .from('clinics')
-          .insert([clinicaData])
-          .select()
-          .single();
-
-        if (clinicaError) throw clinicaError;
-        clinicasCount++;
-
-        // Insertamos los servicios de esta clínica
-        for (const srv of vet.servicios) {
-          const validCategories = ['CONSULTA', 'CIRUGIA', 'LABORATORIO', 'IMAGENES', 'VACUNAS', 'PROCEDIMIENTOS'];
-          const categoria = validCategories.includes(srv.categoria) ? srv.categoria : 'CONSULTA';
-
-          const modoServicio = srv.modo_servicio === 'EN_SEDE' ? 'EN_SEDE' 
-            : srv.modo_servicio === 'A_DOMICILIO' ? 'A_DOMICILIO' 
-            : 'AMBOS';
-
-          const servicioData = {
-            categoria: categoria as Service['categoria'],
-            nombre: srv.nombre,
-            descripcion: srv.descripcion || '',
-            precio: srv.precio || 0,
-            precio_descuento: srv.precio_descuento ?? null,
-            proveedor: vet.nombre,
-            clinica_id: clinicaResult.id,
-            ciudad: vet.ciudad,
-            modo_servicio: modoServicio as Service['modoServicio'],
-            estado: 'activo',
-            fecha_creacion: fechaActual,
-            fecha_actualizacion: fechaActual,
-          };
-
-          const { error: servicioError } = await supabase
-            .from('services')
-            .insert([servicioData]);
-
-          if (servicioError) throw servicioError;
-          serviciosCount++;
-        }
-      }
-
-      return { clinicasImportadas: clinicasCount, serviciosImportados: serviciosCount };
+      const result = await apiPost<{ clinicasImportadas: number; serviciosImportados: number }>('/api/clinics/import', data);
+      return result;
     } catch (error) {
+      console.error('[STORE] Error al importar datos:', error);
       throw error;
     }
   }, []);
 
   const limpiarTodosLosDatos = useCallback(async () => {
     try {
-      // Eliminamos en orden correcto debido a las foreign keys
-      await supabase.from('services').delete().neq('id', ''); // Eliminar todos los servicios
-      await supabase.from('clinics').delete().neq('id', '');  // Eliminar todas las clínicas
-      // No actualizamos estado local - las suscripciones se encargarán
+      await apiPost('/api/clear');
     } catch (error) {
+      console.error('[STORE] Error al limpiar datos:', error);
       throw error;
     }
   }, []);
 
-  const obtenerServiciosFiltrados = useCallback(() => {
+  const serviciosFiltrados = useMemo(() => {
     if (!busquedaRealizada) return [];
     
     return servicios.filter(servicio => {
@@ -317,15 +303,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, [servicios, filtros, busquedaRealizada]);
 
-  const obtenerCiudades = useCallback(() => {
-    const ciudades = [...new Set(clinicas.map(c => c.ciudad))];
-    return ciudades;
+  const ciudades = useMemo(() => {
+    return [...new Set(clinicas.map(c => c.ciudad))];
   }, [clinicas]);
 
-  const obtenerProveedores = useCallback(() => {
-    const proveedores = [...new Set(servicios.map(s => s.proveedor))];
-    return proveedores;
+  const proveedores = useMemo(() => {
+    return [...new Set(servicios.map(s => s.proveedor))];
   }, [servicios]);
+
+  const obtenerServiciosFiltrados = useCallback(() => serviciosFiltrados, [serviciosFiltrados]);
+  const obtenerCiudades = useCallback(() => ciudades, [ciudades]);
+  const obtenerProveedores = useCallback(() => proveedores, [proveedores]);
 
   const contextValue = useMemo(() => ({
     clinicas,
