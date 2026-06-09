@@ -1,13 +1,19 @@
 import { supabase } from './supabase';
 import { VeterinaryClinic } from './types';
-import { normalizeClinic, serializeClinicForDb } from './normalizers';
+import { serializeClinicForDb } from './normalizers';
 
 export const agregarClinica = async (clinica: VeterinaryClinic) => {
-  const { error } = await supabase
+  const payload = serializeClinicForDb(clinica);
+  delete payload.id; // Supabase genera el UUID automáticamente
+
+  const { data, error } = await supabase
     .from('clinics')
-    .insert([serializeClinicForDb(clinica)]);
+    .insert([payload])
+    .select()
+    .single();
   
   if (error) throw error;
+  return data;
 };
 
 export const actualizarClinica = async (id: string, actualizaciones: Partial<VeterinaryClinic>) => {

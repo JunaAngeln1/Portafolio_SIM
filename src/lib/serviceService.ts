@@ -3,11 +3,17 @@ import { Service } from './types';
 import { normalizeService, serializeServiceForDb } from './normalizers';
 
 export const agregarServicio = async (servicio: Service) => {
-  const { error } = await supabase
+  const payload = serializeServiceForDb(servicio);
+  delete payload.id; // Supabase genera el UUID automáticamente
+
+  const { data, error } = await supabase
     .from('services')
-    .insert([serializeServiceForDb(servicio)]);
+    .insert([payload])
+    .select()
+    .single();
   
   if (error) throw error;
+  return data;
 };
 
 export const actualizarServicio = async (id: string, actualizaciones: Partial<Service>) => {
@@ -49,20 +55,23 @@ export const duplicarServicio = async (id: string) => {
   const originalServicio = normalizeService(originalData);
   const fechaActual = new Date().toISOString().split('T')[0];
   
-  // Creamos el nuevo servicio basado en el original
-  const nuevoServicio: Service = {
+  // Creamos el payload sin ID - Supabase generará el UUID
+  const payload = serializeServiceForDb({
     ...originalServicio,
-    id: `srv_${Date.now()}`,
     nombre: `${originalServicio.nombre} (Copia)`,
     estado: 'activo',
     fechaCreacion: fechaActual,
     fechaActualizacion: fechaActual,
-  };
+  });
+  delete payload.id; // Asegurar que no se envíe ID
   
-  // Insertamos el nuevo servicio
-  const { error } = await supabase
+  // Insertamos el nuevo servicio y retornamos la fila insertada
+  const { data, error } = await supabase
     .from('services')
-    .insert([serializeServiceForDb(nuevoServicio)]);
+    .insert([payload])
+    .select()
+    .single();
   
   if (error) throw error;
+  return data;
 };

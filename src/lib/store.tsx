@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import { VeterinaryClinic, Service, FilterState, ImportData } from './types';
 import { mockClinics, mockServices } from './data';
 import { supabase } from './supabase';
@@ -57,9 +57,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [datosCargados, setDatosCargados] = useState(false);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
   useEffect(() => {
-    // Remover todos los canales existentes primero (síncrono)
-    supabase.removeAllChannels();
-
     let cancelled = false;
 
     // Cargar datos iniciales desde Supabase
@@ -151,55 +148,74 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const agregarClinica = useCallback(async (clinica: VeterinaryClinic) => {
-    await agregarClinicaService(clinica);
-    setClinicas(prev => [...prev, clinica]);
+    try {
+      await agregarClinicaService(clinica);
+      // La suscripción realtime se encargará de actualizar el estado
+    } catch (error) {
+      console.error('Error al agregar clínica:', error);
+      throw error;
+    }
   }, []);
 
   const actualizarClinica = useCallback(async (id: string, actualizaciones: Partial<VeterinaryClinic>) => {
-    await actualizarClinicaService(id, actualizaciones);
-    setClinicas(prev => prev.map(c => 
-      c.id === id ? { ...c, ...actualizaciones, fechaActualizacion: new Date().toISOString().split('T')[0] } : c
-    ));
+    try {
+      await actualizarClinicaService(id, actualizaciones);
+      // La suscripción realtime se encargará de actualizar el estado
+    } catch (error) {
+      console.error('Error al actualizar clínica:', error);
+      throw error;
+    }
   }, []);
 
   const eliminarClinica = useCallback(async (id: string) => {
-    await eliminarClinicaService(id);
-    setClinicas(prev => prev.filter(c => c.id !== id));
+    try {
+      await eliminarClinicaService(id);
+      // La suscripción realtime se encargará de actualizar el estado
+    } catch (error) {
+      console.error('Error al eliminar clínica:', error);
+      throw error;
+    }
   }, []);
 
   const agregarServicio = useCallback(async (servicio: Service) => {
-    await agregarServicioService(servicio);
-    setServicios(prev => [...prev, servicio]);
+    try {
+      await agregarServicioService(servicio);
+      // La suscripción realtime se encargará de actualizar el estado
+    } catch (error) {
+      console.error('Error al agregar servicio:', error);
+      throw error;
+    }
   }, []);
 
   const actualizarServicio = useCallback(async (id: string, actualizaciones: Partial<Service>) => {
-    await actualizarServicioService(id, actualizaciones);
-    setServicios(prev => prev.map(s => 
-      s.id === id ? { ...s, ...actualizaciones, fechaActualizacion: new Date().toISOString().split('T')[0] } : s
-    ));
+    try {
+      await actualizarServicioService(id, actualizaciones);
+      // La suscripción realtime se encargará de actualizar el estado
+    } catch (error) {
+      console.error('Error al actualizar servicio:', error);
+      throw error;
+    }
   }, []);
 
   const eliminarServicio = useCallback(async (id: string) => {
-    await eliminarServicioService(id);
-    setServicios(prev => prev.filter(s => s.id !== id));
+    try {
+      await eliminarServicioService(id);
+      // La suscripción realtime se encargará de actualizar el estado
+    } catch (error) {
+      console.error('Error al eliminar servicio:', error);
+      throw error;
+    }
   }, []);
 
   const duplicarServicio = useCallback(async (id: string) => {
-    await duplicarServicioService(id);
-    const original = servicios.find(s => s.id === id);
-    if (original) {
-      const fechaActual = new Date().toISOString().split('T')[0];
-      const nuevoServicio: Service = {
-        ...original,
-        id: `srv_${Date.now()}`,
-        nombre: `${original.nombre} (Copia)`,
-        estado: 'activo',
-        fechaCreacion: fechaActual,
-        fechaActualizacion: fechaActual,
-      };
-      setServicios(prev => [...prev, nuevoServicio]);
+    try {
+      await duplicarServicioService(id);
+      // La suscripción realtime se encargará de agregar el nuevo servicio al estado
+    } catch (error) {
+      console.error('Error al duplicar servicio:', error);
+      throw error;
     }
-  }, [servicios]);
+  }, []);
 
   const importarDatos = useCallback(async (data: ImportData): Promise<{ clinicasImportadas: number; serviciosImportados: number }> => {
     let clinicasCount = 0;
@@ -311,30 +327,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return proveedores;
   }, [servicios]);
 
+  const contextValue = useMemo(() => ({
+    clinicas,
+    servicios,
+    filtros,
+    sidebarAbierto,
+    datosCargados,
+    busquedaRealizada,
+    setSidebarAbierto,
+    setFiltros,
+    limpiarFiltros,
+    agregarClinica,
+    actualizarClinica,
+    eliminarClinica,
+    agregarServicio,
+    actualizarServicio,
+    eliminarServicio,
+    duplicarServicio,
+    importarDatos,
+    limpiarTodosLosDatos,
+    obtenerServiciosFiltrados,
+    obtenerCiudades,
+    obtenerProveedores,
+  }), [
+    clinicas, servicios, filtros, sidebarAbierto, datosCargados, busquedaRealizada,
+    setSidebarAbierto, setFiltros, limpiarFiltros,
+    agregarClinica, actualizarClinica, eliminarClinica,
+    agregarServicio, actualizarServicio, eliminarServicio, duplicarServicio,
+    importarDatos, limpiarTodosLosDatos,
+    obtenerServiciosFiltrados, obtenerCiudades, obtenerProveedores,
+  ]);
+
   return (
-    <AppContext.Provider value={{
-      clinicas,
-      servicios,
-      filtros,
-      sidebarAbierto,
-      datosCargados,
-      busquedaRealizada,
-      setSidebarAbierto,
-      setFiltros,
-      limpiarFiltros,
-      agregarClinica,
-      actualizarClinica,
-      eliminarClinica,
-      agregarServicio,
-      actualizarServicio,
-      eliminarServicio,
-      duplicarServicio,
-      importarDatos,
-      limpiarTodosLosDatos,
-      obtenerServiciosFiltrados,
-      obtenerCiudades,
-      obtenerProveedores,
-    }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

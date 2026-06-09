@@ -86,42 +86,14 @@ export function QuotationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem('simp_q_ciudad', ciudadSeleccionada);
-  }, [ciudadSeleccionada, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
     localStorage.setItem('simp_q_clinica', clinicaSeleccionada);
-  }, [clinicaSeleccionada, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
     localStorage.setItem('simp_q_cliente', clienteNombre);
-  }, [clienteNombre, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
     localStorage.setItem('simp_q_fecha', fecha);
-  }, [fecha, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
     localStorage.setItem('simp_q_comentarios', comentarios);
-  }, [comentarios, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
     localStorage.setItem('simp_q_beneficioPlus', String(beneficioPlus));
-  }, [beneficioPlus, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
     localStorage.setItem('simp_q_items', JSON.stringify(items));
-  }, [items, hydrated]);
-
-  useEffect(() => {
-    if (!hydrated) return;
     localStorage.setItem('simp_q_viewMode', viewMode);
-  }, [viewMode, hydrated]);
+  }, [ciudadSeleccionada, clinicaSeleccionada, clienteNombre, fecha, comentarios, beneficioPlus, items, viewMode, hydrated]);
 
   const ciudades = useMemo(() => {
     const ciudadSet = new Set(clinicas.filter(c => c.estado === 'activo').map(c => c.ciudad));
@@ -277,36 +249,45 @@ export function QuotationProvider({ children }: { children: ReactNode }) {
     }
   }, [textoGenerado]);
 
+  const contextValue = useMemo(() => ({
+    ciudadSeleccionada,
+    setCiudad,
+    clinicaSeleccionada,
+    clinicaNombre,
+    setClinica,
+    clienteNombre,
+    setClienteNombre,
+    fecha,
+    setFecha,
+    comentarios,
+    setComentarios,
+    beneficioPlus,
+    setBeneficioPlus,
+    items,
+    agregarItem,
+    eliminarItem,
+    setCantidad,
+    setTipoDescuento,
+    setQuimicasFields,
+    viewMode,
+    toggleViewMode,
+    totalSinDescuento: totals.totalSinDescuento,
+    totalDescuentos: totals.totalDescuentos,
+    totalFinal: totals.totalFinal,
+    textoGenerado,
+    limpiarCotizacion,
+    copiarAlPortapapeles,
+  }), [
+    ciudadSeleccionada, setCiudad, clinicaSeleccionada, clinicaNombre, setClinica,
+    clienteNombre, setClienteNombre, fecha, setFecha, comentarios, setComentarios,
+    beneficioPlus, setBeneficioPlus, items, agregarItem, eliminarItem,
+    setCantidad, setTipoDescuento, setQuimicasFields, viewMode, toggleViewMode,
+    totals.totalSinDescuento, totals.totalDescuentos, totals.totalFinal,
+    textoGenerado, limpiarCotizacion, copiarAlPortapapeles,
+  ]);
+
   return (
-    <QuotationContext.Provider value={{
-      ciudadSeleccionada,
-      setCiudad,
-      clinicaSeleccionada,
-      clinicaNombre,
-      setClinica,
-      clienteNombre,
-      setClienteNombre,
-      fecha,
-      setFecha,
-      comentarios,
-      setComentarios,
-      beneficioPlus,
-      setBeneficioPlus,
-      items,
-      agregarItem,
-      eliminarItem,
-      setCantidad,
-      setTipoDescuento,
-      setQuimicasFields,
-      viewMode,
-      toggleViewMode,
-      totalSinDescuento: totals.totalSinDescuento,
-      totalDescuentos: totals.totalDescuentos,
-      totalFinal: totals.totalFinal,
-      textoGenerado,
-      limpiarCotizacion,
-      copiarAlPortapapeles,
-    }}>
+    <QuotationContext.Provider value={contextValue}>
       {children}
     </QuotationContext.Provider>
   );

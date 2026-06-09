@@ -52,8 +52,9 @@ export default function PortfolioTable() {
       actualizarServicio(servicioEditando.id, data);
     } else {
       const clinica = clinicas.find(c => c.id === data.clinicaId);
+      // No generamos ID - Supabase lo genera automáticamente
       const nuevoServicio: Service = {
-        id: `srv_${Date.now()}`,
+        id: '', // Se ignorará, Supabase genera el UUID
         categoria: data.categoria as Service['categoria'],
         nombre: data.nombre || '',
         descripcion: data.descripcion || '',

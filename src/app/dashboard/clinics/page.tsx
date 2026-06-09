@@ -139,8 +139,9 @@ export default function ClinicsPage() {
     if (clinicaEditando) {
       actualizarClinica(clinicaEditando.id, data);
     } else {
+      // No generamos ID - Supabase lo genera automáticamente
       const nuevaClinica: VeterinaryClinic = {
-        id: `vet_${Date.now()}`,
+        id: '', // Se ignorará, Supabase genera el UUID
         nombre: data.nombre || '',
         ciudad: data.ciudad || '',
         direccion: data.direccion || '',
