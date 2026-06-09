@@ -42,41 +42,58 @@ export default function PortfolioTable() {
   const [servicioEditando, setServicioEditando] = useState<Service | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const serviciosFiltrados = obtenerServiciosFiltrados();
   const ciudades = obtenerCiudades();
   const proveedores = obtenerProveedores();
 
-  const handleSaveServicio = (data: Partial<Service>) => {
-    if (servicioEditando) {
-      actualizarServicio(servicioEditando.id, data);
-    } else {
-      const clinica = clinicas.find(c => c.id === data.clinicaId);
-      // No generamos ID - Supabase lo genera automáticamente
-      const nuevoServicio: Service = {
-        id: '', // Se ignorará, Supabase genera el UUID
-        categoria: data.categoria as Service['categoria'],
-        nombre: data.nombre || '',
-        descripcion: data.descripcion || '',
-        precio: data.precio || 0,
-        precioDescuento: data.precioDescuento ?? null,
-        proveedor: data.proveedor || clinica?.nombre || '',
-        clinicaId: data.clinicaId || '',
-        ciudad: data.ciudad || clinica?.ciudad || '',
-        modoServicio: data.modoServicio as Service['modoServicio'],
-        estado: (data.estado as 'activo' | 'inactivo') || 'activo',
-        fechaCreacion: new Date().toISOString().split('T')[0],
-        fechaActualizacion: new Date().toISOString().split('T')[0],
-      };
-      agregarServicio(nuevoServicio);
+  const handleSaveServicio = async (data: Partial<Service>) => {
+    setSaving(true);
+    try {
+      if (servicioEditando) {
+        await actualizarServicio(servicioEditando.id, data);
+      } else {
+        const clinica = clinicas.find(c => c.id === data.clinicaId);
+        const nuevoServicio: Service = {
+          id: '',
+          categoria: data.categoria as Service['categoria'],
+          nombre: data.nombre || '',
+          descripcion: data.descripcion || '',
+          precio: data.precio || 0,
+          precioDescuento: data.precioDescuento ?? null,
+          proveedor: data.proveedor || clinica?.nombre || '',
+          clinicaId: data.clinicaId || '',
+          ciudad: data.ciudad || clinica?.ciudad || '',
+          modoServicio: data.modoServicio as Service['modoServicio'],
+          estado: (data.estado as 'activo' | 'inactivo') || 'activo',
+          fechaCreacion: new Date().toISOString().split('T')[0],
+          fechaActualizacion: new Date().toISOString().split('T')[0],
+        };
+        await agregarServicio(nuevoServicio);
+      }
+      setIsModalOpen(false);
+      setServicioEditando(null);
+    } catch (error) {
+      console.error('[PORTFOLIO] Error al guardar servicio:', error);
+      alert('Error al guardar el servicio. Verifica que tengas permisos de administrador.');
+    } finally {
+      setSaving(false);
     }
-    setIsModalOpen(false);
-    setServicioEditando(null);
   };
 
-  const handleDelete = (id: string) => {
-    eliminarServicio(id);
-    setConfirmDelete(null);
+  const handleDelete = async (id: string) => {
+    setDeleting(true);
+    try {
+      await eliminarServicio(id);
+      setConfirmDelete(null);
+    } catch (error) {
+      console.error('[PORTFOLIO] Error al eliminar servicio:', error);
+      alert('Error al eliminar el servicio. Verifica que tengas permisos de administrador.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleExportar = () => {
@@ -314,14 +331,28 @@ export default function PortfolioTable() {
                             </svg>
                           </button>
                           <button 
-                            onClick={() => duplicarServicio(servicio.id)}
+                            onClick={async () => {
+                              try {
+                                await duplicarServicio(servicio.id);
+                              } catch (error) {
+                                console.error('[PORTFOLIO] Error al duplicar servicio:', error);
+                                alert('Error al duplicar el servicio.');
+                              }
+                            }}
                             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                             title="Duplicar"
                           >
                             <Copy className="w-4 h-4 text-gray-500" />
                           </button>
                           <button 
-                            onClick={() => actualizarServicio(servicio.id, { estado: servicio.estado === 'activo' ? 'inactivo' : 'activo' })}
+                            onClick={async () => {
+                              try {
+                                await actualizarServicio(servicio.id, { estado: servicio.estado === 'activo' ? 'inactivo' : 'activo' });
+                              } catch (error) {
+                                console.error('[PORTFOLIO] Error al cambiar estado:', error);
+                                alert('Error al cambiar el estado del servicio.');
+                              }
+                            }}
                             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                             title={servicio.estado === 'activo' ? 'Desactivar' : 'Activar'}
                           >
@@ -373,9 +404,10 @@ export default function PortfolioTable() {
               </button>
               <button
                 onClick={() => handleDelete(confirmDelete)}
-                className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors"
+                disabled={deleting}
+                className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
               >
-                Eliminar
+                {deleting ? 'Eliminando...' : 'Eliminar'}
               </button>
             </div>
           </div>

@@ -8,7 +8,7 @@ import { X } from 'lucide-react';
 interface ServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (servicio: Partial<Service>) => void;
+  onSave: (servicio: Partial<Service>) => Promise<void>;
   servicio?: Service | null;
   clinicas: { id: string; nombre: string; ciudad: string }[];
 }
@@ -54,15 +54,20 @@ export default function ServiceModal({ isOpen, onClose, onSave, servicio, clinic
 
   const clinicaSeleccionada = clinicas.find(c => c.id === formData.clinicaId);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    onSave({
-      ...formData,
-      proveedor: clinicaSeleccionada?.nombre || '',
-      ciudad: clinicaSeleccionada?.ciudad || '',
-    });
-    setTimeout(() => setIsSubmitting(false), 500);
+    try {
+      await onSave({
+        ...formData,
+        proveedor: clinicaSeleccionada?.nombre || '',
+        ciudad: clinicaSeleccionada?.ciudad || '',
+      });
+    } catch {
+      // Error is handled by the parent component
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;

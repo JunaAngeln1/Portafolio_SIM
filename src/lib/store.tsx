@@ -201,7 +201,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const agregarClinica = useCallback(async (clinica: VeterinaryClinic) => {
     try {
-      await apiPost('/api/clinics', clinica);
+      const data = await apiPost<VeterinaryClinic>('/api/clinics', clinica);
+      setClinicas(prev => [...prev, normalizeClinic(data)]);
     } catch (error) {
       console.error('[STORE] Error al agregar clínica:', error);
       throw error;
@@ -210,7 +211,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const actualizarClinica = useCallback(async (id: string, actualizaciones: Partial<VeterinaryClinic>) => {
     try {
-      await apiPut(`/api/clinics/${id}`, actualizaciones);
+      const data = await apiPut<VeterinaryClinic>(`/api/clinics/${id}`, actualizaciones);
+      setClinicas(prev => prev.map(c => 
+        c.id === id ? normalizeClinic(data) : c
+      ));
     } catch (error) {
       console.error('[STORE] Error al actualizar clínica:', error);
       throw error;
@@ -220,6 +224,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const eliminarClinica = useCallback(async (id: string) => {
     try {
       await apiDelete(`/api/clinics/${id}`);
+      setClinicas(prev => prev.filter(c => c.id !== id));
     } catch (error) {
       console.error('[STORE] Error al eliminar clínica:', error);
       throw error;
@@ -228,7 +233,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const agregarServicio = useCallback(async (servicio: Service) => {
     try {
-      await apiPost('/api/services', servicio);
+      const data = await apiPost<Service>('/api/services', servicio);
+      // Actualizar estado local con el ID real de Supabase
+      setServicios(prev => [...prev, normalizeService(data)]);
     } catch (error) {
       console.error('[STORE] Error al agregar servicio:', error);
       throw error;
@@ -237,7 +244,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const actualizarServicio = useCallback(async (id: string, actualizaciones: Partial<Service>) => {
     try {
-      await apiPut(`/api/services/${id}`, actualizaciones);
+      const data = await apiPut<Service>(`/api/services/${id}`, actualizaciones);
+      // Actualizar estado local con los datos del servidor
+      setServicios(prev => prev.map(s => 
+        s.id === id ? normalizeService(data) : s
+      ));
     } catch (error) {
       console.error('[STORE] Error al actualizar servicio:', error);
       throw error;
@@ -247,6 +258,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const eliminarServicio = useCallback(async (id: string) => {
     try {
       await apiDelete(`/api/services/${id}`);
+      // Eliminar del estado local inmediatamente
+      setServicios(prev => prev.filter(s => s.id !== id));
     } catch (error) {
       console.error('[STORE] Error al eliminar servicio:', error);
       throw error;
@@ -255,7 +268,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const duplicarServicio = useCallback(async (id: string) => {
     try {
-      await apiPost(`/api/services/${id}/duplicate`);
+      const data = await apiPost<Service>(`/api/services/${id}/duplicate`);
+      // Agregar el duplicado al estado local
+      setServicios(prev => [...prev, normalizeService(data)]);
     } catch (error) {
       console.error('[STORE] Error al duplicar servicio:', error);
       throw error;
