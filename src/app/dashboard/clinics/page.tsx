@@ -164,8 +164,8 @@ export default function ClinicsPage() {
         direccion: data.direccion || '',
         servicioDomicilio: data.servicioDomicilio ?? true,
         estado: (data.estado as 'activo' | 'inactivo') || 'activo',
-        fechaCreacion: new Date().toISOString().split('T')[0],
-        fechaActualizacion: new Date().toISOString().split('T')[0],
+        fechaCreacion: new Date().toISOString().split('T')[0] ?? '',
+        fechaActualizacion: new Date().toISOString().split('T')[0] ?? '',
       };
       agregarClinica(nuevaClinica);
     }

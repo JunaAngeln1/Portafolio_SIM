@@ -25,7 +25,7 @@ describe('validarImportData', () => {
     const result = validarImportData(null);
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      expect(result.errors[0].message).toContain('objeto válido');
+      expect(result.errors[0]!.message).toContain('objeto válido');
     }
   });
 
@@ -33,7 +33,7 @@ describe('validarImportData', () => {
     const result = validarImportData({});
     expect(result.valid).toBe(false);
     if (!result.valid) {
-      expect(result.errors[0].field).toBe('veterinarias');
+      expect(result.errors[0]!.field).toBe('veterinarias');
     }
   });
 

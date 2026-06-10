@@ -56,9 +56,9 @@ describe('obtenerFechaActual', () => {
   it('debería usar la fecha actual', () => {
     const fecha = obtenerFechaActual();
     const partes = fecha.split('/');
-    const dia = parseInt(partes[0], 10);
-    const mes = parseInt(partes[1], 10);
-    const anio = parseInt(partes[2], 10);
+    const dia = parseInt(partes[0]!, 10);
+    const mes = parseInt(partes[1]!, 10);
+    const anio = parseInt(partes[2]!, 10);
     const ahora = new Date();
 
     expect(dia).toBe(ahora.getDate());

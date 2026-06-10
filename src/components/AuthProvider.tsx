@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { UserProfile, UserRole } from '@/lib/types';
 import { getSupabaseBrowser } from '@/lib/supabase-browser';
 
@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event: string, session: Session | null) => {
         if (event === 'SIGNED_IN' && session?.user) {
           setUser(session.user);
           await fetchProfile(session.user.id);

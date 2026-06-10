@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   description: 'Professional platform for veterinary portfolio management and digitalization.',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: {

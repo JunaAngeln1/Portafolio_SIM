@@ -76,7 +76,7 @@ describe('ServiceModal', () => {
     render(
       <ServiceModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} clinicas={mockClinicas} />
     );
-    const nombreInput = screen.getAllByRole('textbox')[0];
+    const nombreInput = screen.getAllByRole('textbox')[0]!;
     fireEvent.change(nombreInput, { target: { value: 'Nuevo Servicio' } });
     expect(nombreInput).toHaveValue('Nuevo Servicio');
   });
@@ -85,7 +85,7 @@ describe('ServiceModal', () => {
     render(
       <ServiceModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} clinicas={mockClinicas} />
     );
-    const precioInput = screen.getAllByRole('spinbutton')[0];
+    const precioInput = screen.getAllByRole('spinbutton')[0]!;
     fireEvent.change(precioInput, { target: { value: '75000' } });
     expect(precioInput).toHaveValue(75000);
   });
@@ -94,8 +94,8 @@ describe('ServiceModal', () => {
     render(
       <ServiceModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} clinicas={mockClinicas} />
     );
-    fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: 'Test Service' } });
-    fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '60000' } });
+    fireEvent.change(screen.getAllByRole('textbox')[0]!, { target: { value: 'Test Service' } });
+    fireEvent.change(screen.getAllByRole('spinbutton')[0]!, { target: { value: '60000' } });
     fireEvent.click(screen.getByText('Agregar Servicio'));
 
     expect(mockOnSave).toHaveBeenCalledWith(
@@ -107,8 +107,8 @@ describe('ServiceModal', () => {
     render(
       <ServiceModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} clinicas={mockClinicas} />
     );
-    fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: 'Test' } });
-    fireEvent.change(screen.getAllByRole('spinbutton')[0], { target: { value: '50000' } });
+    fireEvent.change(screen.getAllByRole('textbox')[0]!, { target: { value: 'Test' } });
+    fireEvent.change(screen.getAllByRole('spinbutton')[0]!, { target: { value: '50000' } });
     fireEvent.click(screen.getByText('Agregar Servicio'));
 
     expect(mockOnSave).toHaveBeenCalledWith(
@@ -121,7 +121,7 @@ describe('ServiceModal', () => {
       <ServiceModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} clinicas={mockClinicas} />
     );
     const comboboxes = screen.getAllByRole('combobox');
-    fireEvent.change(comboboxes[0], { target: { value: 'CIRUGIA' } });
+    fireEvent.change(comboboxes[0]!, { target: { value: 'CIRUGIA' } });
     expect(comboboxes[0]).toHaveValue('CIRUGIA');
   });
 
@@ -130,7 +130,7 @@ describe('ServiceModal', () => {
       <ServiceModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} clinicas={mockClinicas} />
     );
     const comboboxes = screen.getAllByRole('combobox');
-    fireEvent.change(comboboxes[2], { target: { value: 'A_DOMICILIO' } });
+    fireEvent.change(comboboxes[2]!, { target: { value: 'A_DOMICILIO' } });
     expect(comboboxes[2]).toHaveValue('A_DOMICILIO');
   });
 
@@ -139,7 +139,7 @@ describe('ServiceModal', () => {
       <ServiceModal isOpen={true} onClose={mockOnClose} onSave={mockOnSave} clinicas={mockClinicas} />
     );
     const comboboxes = screen.getAllByRole('combobox');
-    fireEvent.change(comboboxes[3], { target: { value: 'inactivo' } });
+    fireEvent.change(comboboxes[3]!, { target: { value: 'inactivo' } });
     expect(comboboxes[3]).toHaveValue('inactivo');
   });
 

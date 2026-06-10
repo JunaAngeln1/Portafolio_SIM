@@ -68,8 +68,8 @@ export default function PortfolioTable() {
           ciudad: data.ciudad || clinica?.ciudad || '',
           modoServicio: data.modoServicio as Service['modoServicio'],
           estado: (data.estado as 'activo' | 'inactivo') || 'activo',
-          fechaCreacion: new Date().toISOString().split('T')[0],
-          fechaActualizacion: new Date().toISOString().split('T')[0],
+          fechaCreacion: new Date().toISOString().split('T')[0] ?? '',
+          fechaActualizacion: new Date().toISOString().split('T')[0] ?? '',
         };
         await agregarServicio(nuevoServicio);
       }
@@ -114,7 +114,7 @@ export default function PortfolioTable() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `portafolio_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `portafolio_${new Date().toISOString().split('T')[0] ?? 'fecha'}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

@@ -124,7 +124,6 @@ const filtrosPorDefecto: FilterState = {
   modoServicio: 'TODOS',
   estado: 'TODOS',
   busqueda: '',
-  rangoFechas: { desde: '', hasta: '' },
 };
 
 describe('Filtrado de Servicios (lógica del store)', () => {
@@ -142,7 +141,7 @@ describe('Filtrado de Servicios (lógica del store)', () => {
   it('debería filtrar por categoría', () => {
     const resultado = filterServices(mockServicios, { ...filtrosPorDefecto, categoria: 'CONSULTA' });
     expect(resultado).toHaveLength(1);
-    expect(resultado[0].categoria).toBe('CONSULTA');
+    expect(resultado[0]!.categoria).toBe('CONSULTA');
   });
 
   it('debería filtrar por proveedor', () => {
@@ -154,43 +153,43 @@ describe('Filtrado de Servicios (lógica del store)', () => {
   it('debería filtrar por modo de servicio', () => {
     const resultado = filterServices(mockServicios, { ...filtrosPorDefecto, modoServicio: 'A_DOMICILIO' });
     expect(resultado).toHaveLength(1);
-    expect(resultado[0].modoServicio).toBe('A_DOMICILIO');
+    expect(resultado[0]!.modoServicio).toBe('A_DOMICILIO');
   });
 
   it('debería filtrar por estado', () => {
     const resultado = filterServices(mockServicios, { ...filtrosPorDefecto, estado: 'inactivo' });
     expect(resultado).toHaveLength(1);
-    expect(resultado[0].estado).toBe('inactivo');
+    expect(resultado[0]!.estado).toBe('inactivo');
   });
 
   it('debería filtrar por búsqueda en nombre', () => {
     const resultado = filterServices(mockServicios, { ...filtrosPorDefecto, busqueda: 'Consulta' });
     expect(resultado).toHaveLength(1);
-    expect(resultado[0].nombre).toContain('Consulta');
+    expect(resultado[0]!.nombre).toContain('Consulta');
   });
 
   it('debería filtrar por búsqueda en descripción', () => {
     const resultado = filterServices(mockServicios, { ...filtrosPorDefecto, busqueda: 'alto riesgo' });
     expect(resultado).toHaveLength(1);
-    expect(resultado[0].descripcion).toContain('alto riesgo');
+    expect(resultado[0]!.descripcion).toContain('alto riesgo');
   });
 
   it('debería filtrar por búsqueda en categoría', () => {
     const resultado = filterServices(mockServicios, { ...filtrosPorDefecto, busqueda: 'cirugia' });
     expect(resultado).toHaveLength(1);
-    expect(resultado[0].categoria).toBe('CIRUGIA');
+    expect(resultado[0]!.categoria).toBe('CIRUGIA');
   });
 
   it('debería filtrar por búsqueda en proveedor', () => {
     const resultado = filterServices(mockServicios, { ...filtrosPorDefecto, busqueda: 'La Mascota' });
     expect(resultado).toHaveLength(1);
-    expect(resultado[0].proveedor).toContain('La Mascota');
+    expect(resultado[0]!.proveedor).toContain('La Mascota');
   });
 
   it('debería filtrar por búsqueda en ciudad', () => {
     const resultado = filterServices(mockServicios, { ...filtrosPorDefecto, busqueda: 'La Mascota' });
     expect(resultado).toHaveLength(1);
-    expect(resultado[0].proveedor).toContain('La Mascota');
+    expect(resultado[0]!.proveedor).toContain('La Mascota');
   });
 
   it('debería combinar filtros de categoría y ciudad', () => {
@@ -200,8 +199,8 @@ describe('Filtrado de Servicios (lógica del store)', () => {
       ciudad: 'Bogotá',
     });
     expect(resultado).toHaveLength(1);
-    expect(resultado[0].categoria).toBe('CONSULTA');
-    expect(resultado[0].ciudad).toBe('Bogotá');
+    expect(resultado[0]!.categoria).toBe('CONSULTA');
+    expect(resultado[0]!.ciudad).toBe('Bogotá');
   });
 
   it('debería devolver array vacío si no hay coincidencias', () => {

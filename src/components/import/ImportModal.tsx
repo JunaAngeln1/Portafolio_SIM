@@ -51,7 +51,11 @@ export default function ImportModal({ isOpen, onClose }: ImportModalProps) {
       
       if (!validation.valid) {
         const primerError = validation.errors[0];
-        setParseError(`Error en ${primerError.field}: ${primerError.message}`);
+        if (primerError) {
+          setParseError(`Error en ${primerError.field}: ${primerError.message}`);
+        } else {
+          setParseError('Error de validación desconocido');
+        }
         return;
       }
 

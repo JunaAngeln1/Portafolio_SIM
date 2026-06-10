@@ -5,6 +5,7 @@ import { VeterinaryClinic, Service, FilterState, ImportData } from './types';
 import { mockClinics, mockServices } from './data';
 import { normalizeClinic, normalizeService } from './normalizers';
 import { getSupabaseBrowser } from './supabase-browser';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 // API-based CRUD functions for server-side auth
 async function apiPost<T>(url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -129,7 +130,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .channel('clinicas-realtime')
         .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'clinics' }, 
-          payload => {
+          (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
             if (cancelled) return;
             const normalizedClinic = normalizeClinic(payload.new);
 
@@ -150,7 +151,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         .channel('servicios-realtime')
         .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'services' }, 
-          payload => {
+          (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
             if (cancelled) return;
 
           if (payload.eventType === 'INSERT') {
