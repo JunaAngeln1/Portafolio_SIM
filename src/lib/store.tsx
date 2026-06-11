@@ -1,10 +1,10 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
 import { VeterinaryClinic, Service, FilterState, ImportData } from './types';
-import { mockClinics, mockServices } from './data';
 import { normalizeClinic, normalizeService } from './normalizers';
 import { getSupabaseBrowser } from './supabase-browser';
+import { useAuth } from '@/components/AuthProvider';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 // API-based CRUD functions for server-side auth
 async function apiPost<T>(url: string, body?: unknown): Promise<T> {
@@ -79,21 +79,28 @@ const filtrosPorDefecto: FilterState = {
   busqueda: '',
 };
 
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [500, 1000, 2000];
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const supabase = getSupabaseBrowser();
+  const { user, isLoading: authLoading } = useAuth();
   const [clinicas, setClinicas] = useState<VeterinaryClinic[]>([]);
   const [servicios, setServicios] = useState<Service[]>([]);
   const [filtros, setFiltrosState] = useState<FilterState>(filtrosPorDefecto);
   const [sidebarAbierto, setSidebarAbierto] = useState(true);
   const [datosCargados, setDatosCargados] = useState(false);
   const [busquedaRealizada, setBusquedaRealizada] = useState(false);
+  const retryCountRef = useRef(0);
+
   useEffect(() => {
+    if (authLoading || !user) return;
+
     let cancelled = false;
 
-    // Cargar datos iniciales desde Supabase
-    const loadInitialData = async () => {
+    const loadInitialData = async (attempt = 0): Promise<boolean> => {
       try {
         const { data: clinicasData, error: clinicasError } = await supabase
           .from('clinics')
@@ -103,24 +110,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
           .from('services')
           .select('id, categoria, nombre, descripcion, precio, precio_descuento, proveedor, clinica_id, ciudad, modo_servicio, estado, fecha_creacion, fecha_actualizacion');
 
-        if (!cancelled) {
-          if (!clinicasError) setClinicas((clinicasData || []).map(normalizeClinic));
-          if (!serviciosError) setServicios((serviciosData || []).map(normalizeService));
-          setDatosCargados(true);
+        if (cancelled) return false;
+
+        if (clinicasError) {
+          console.error('[STORE] Error cargando clinicas:', clinicasError.message, clinicasError);
         }
+        if (serviciosError) {
+          console.error('[STORE] Error cargando servicios:', serviciosError.message, serviciosError);
+        }
+
+        const hasClinicas = clinicasData && clinicasData.length > 0;
+        const hasServicios = serviciosData && serviciosData.length > 0;
+
+        if (!clinicasError) setClinicas((clinicasData || []).map(normalizeClinic));
+        if (!serviciosError) setServicios((serviciosData || []).map(normalizeService));
+
+        if (hasClinicas || hasServicios) {
+          setDatosCargados(true);
+          retryCountRef.current = 0;
+          return true;
+        }
+
+        if (attempt < MAX_RETRIES) {
+          const delay = RETRY_DELAYS[attempt] || 2000;
+          console.warn(`[STORE] Datos vacios, reintentando en ${delay}ms (intento ${attempt + 1}/${MAX_RETRIES})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return loadInitialData(attempt + 1);
+        }
+
+        console.error('[STORE] No se pudieron cargar datos despues de', MAX_RETRIES, 'intentos');
+        setDatosCargados(true);
+        return false;
       } catch (error) {
+        console.error('[STORE] Error inesperado cargando datos:', error);
         if (!cancelled) {
-          setClinicas(mockClinics);
-          setServicios(mockServices);
           setDatosCargados(true);
         }
+        return false;
       }
     };
 
     loadInitialData();
 
-    // Deferred: subscribe to realtime changes after initial load
-    // This lazy-loads the realtime-js and phoenix packages (~1.1 MB)
     const setupRealtime = async () => {
       await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -187,7 +218,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         supabase.removeChannel(cleanup.servicesSubscription);
       }
     };
-  }, [supabase]);
+  }, [supabase, user, authLoading]);
 
   // Funciones CRUD que operan directamente contra Supabase
   const setFiltros = useCallback((nuevosFiltros: Partial<FilterState>) => {
